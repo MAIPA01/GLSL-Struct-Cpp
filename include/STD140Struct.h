@@ -1,9 +1,11 @@
 #pragma once
 
+#include <pch.h>
+#include <framework.h>
 #include <EventHandler.h>
 #include <STD140Offsets.h>
 
-namespace Twin2Engine::Tools {
+namespace glsl {
 	//class STD140Struct;
 
 	/*template<class T>
@@ -32,13 +34,13 @@ namespace Twin2Engine::Tools {
 	private:
 #pragma region CHECKS
 		template<class T> 
-		static constexpr bool type_check_v = is_type_in_v<T, bool, int, unsigned int, float, double>;
+		static constexpr bool type_check_v = extra::is_type_in_v<T, bool, int, unsigned int, float, double>;
 
 		template<class V, class T, size_t L>
-		static constexpr bool vec_check_v = (std::is_same_v<V, glm::vec<L, T>> && type_check_v<T> && is_num_in_range_v<L, 1, 4>);
+		static constexpr bool vec_check_v = (std::is_same_v<V, glm::vec<L, T>> && type_check_v<T> && extra::is_num_in_range_v<L, 1, 4>);
 
 		template<class M, class T, size_t C, size_t R>
-		static constexpr bool mat_check_v = (std::is_same_v<M, glm::mat<C, R, T>> && type_check_v<T> && is_num_in_range_v<C, 1, 4> && is_num_in_range_v<R, 1, 4>);
+		static constexpr bool mat_check_v = (std::is_same_v<M, glm::mat<C, R, T>> && type_check_v<T> && extra::is_num_in_range_v<C, 1, 4> && extra::is_num_in_range_v<R, 1, 4>);
 
 		template<class V, class T> static constexpr bool is_vector_of_v = std::is_same_v<V, std::vector<T>>;
 		template<class V, class T, bool Test> static constexpr bool get_vector_check_v = (is_vector_of_v<V, T> && Test);
@@ -65,7 +67,7 @@ namespace Twin2Engine::Tools {
 		size_t _GetArrayElemSize(const std::vector<size_t>& offsets) const;
 
 		template<class S, class C, class T, class R>
-		R _ConvertArray(const std::string& name, const T& values, size_t size, const Func<R, const std::string&, const std::vector<C>&>& arrayFunc) {
+		R _ConvertArray(const std::string& name, const T& values, size_t size, const glsl::extra::Func<R, const std::string&, const std::vector<C>&>& arrayFunc) {
 #if TRACY_PROFILER
 			ZoneScoped;
 #endif
@@ -390,7 +392,7 @@ namespace Twin2Engine::Tools {
 		std::vector<STD140Struct> _GetStructArray(const std::string& name, const STD140Offsets& structOffsets) const;
 
 		template<class S, class C>
-		std::vector<C> _GetArray(const std::string& name, const Func<std::vector<S>, const std::string&>& getArrayFunc) {
+		std::vector<C> _GetArray(const std::string& name, const glsl::extra::Func<std::vector<S>, const std::string&>& getArrayFunc) {
 #if TRACY_PROFILER
 			ZoneScoped;
 #endif
@@ -458,7 +460,7 @@ namespace Twin2Engine::Tools {
 #if TRACY_PROFILER
 			ZoneScoped;
 #endif
-			using type = type_test_t<std::is_same_v<T, bool>, unsigned int, T>;
+			using type = glsl::extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>;
 			_ConvertArray<T, type>(name, values, size, [&](const std::string& name, const std::vector<type>& values) -> void { _AddArray(name, values); });
 		}
 
@@ -468,7 +470,7 @@ namespace Twin2Engine::Tools {
 #if TRACY_PROFILER
 			ZoneScoped;
 #endif
-			using type = type_test_t<std::is_same_v<T, bool>, unsigned int, T>;
+			using type = glsl::extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>;
 			_ConvertArray<T, type>(name, values, N, [&](const std::string& name, const std::vector<type>& values) -> void { _AddArray(name, values); });
 		}
 
@@ -478,7 +480,7 @@ namespace Twin2Engine::Tools {
 #if TRACY_PROFILER
 			ZoneScoped;
 #endif
-			using type = type_test_t<std::is_same_v<T, bool>, unsigned int, T>;
+			using type = glsl::extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>;
 			_ConvertArray<T, type>(name, values, values.size(),
 				[&](const std::string& name, const std::vector<type>& values) -> void { _AddArray(name, values); });
 		}
@@ -509,7 +511,7 @@ namespace Twin2Engine::Tools {
 #if TRACY_PROFILER
 			ZoneScoped;
 #endif
-			using type = glm::vec<L, type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
+			using type = glm::vec<L, extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
 			_ConvertArray<V, type>(name, values, size, 
 				[&](const std::string& name, const std::vector<type>& values) -> void { _AddArray(name, values); });
 		}
@@ -520,7 +522,7 @@ namespace Twin2Engine::Tools {
 #if TRACY_PROFILER
 			ZoneScoped;
 #endif
-			using type = glm::vec<L, type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
+			using type = glm::vec<L, extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
 			_ConvertArray<V, type>(name, values, N, 
 				[&](const std::string& name, const std::vector<type>& values) -> void { _AddArray(name, values); });
 		}
@@ -531,7 +533,7 @@ namespace Twin2Engine::Tools {
 #if TRACY_PROFILER
 			ZoneScoped;
 #endif
-			using type = glm::vec<L, type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
+			using type = glm::vec<L, extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
 			_ConvertArray<V, type>(name, values, values.size(),
 				[&](const std::string& name, const std::vector<type>& values) -> void { _AddArray(name, values); });
 		}
@@ -562,7 +564,7 @@ namespace Twin2Engine::Tools {
 #if TRACY_PROFILER
 			ZoneScoped;
 #endif
-			using type = glm::mat<C, R, type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
+			using type = glm::mat<C, R, extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
 			_ConvertArray<M, type>(name, values, size, 
 				[&](const std::string& name, const std::vector<type>& values) -> void { _AddArray(name, values); });
 		}
@@ -573,7 +575,7 @@ namespace Twin2Engine::Tools {
 #if TRACY_PROFILER
 			ZoneScoped;
 #endif
-			using type = glm::mat<C, R, type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
+			using type = glm::mat<C, R, extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
 			_ConvertArray<M, type>(name, values, N, 
 				[&](const std::string& name, const std::vector<type>& values) -> void { _AddArray(name, values); });
 		}
@@ -584,7 +586,7 @@ namespace Twin2Engine::Tools {
 #if TRACY_PROFILER
 			ZoneScoped;
 #endif
-			using type = glm::mat<C, R, type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
+			using type = glm::mat<C, R, extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
 			_ConvertArray<M, type>(name, values, values.size(),
 				[&](const std::string& name, const std::vector<type>& values) -> void { _AddArray(name, values); });
 		}
@@ -637,7 +639,7 @@ namespace Twin2Engine::Tools {
 #if TRACY_PROFILER
 			ZoneScoped;
 #endif
-			using type = type_test_t<std::is_same_v<T, bool>, unsigned int, T>;
+			using type = glsl::extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>;
 			return _ConvertArray<T, type>(name, values, size, 
 				[&](const std::string& name, const std::vector<type>& values) -> bool { return _SetArray(name, values); });
 		}
@@ -648,7 +650,7 @@ namespace Twin2Engine::Tools {
 #if TRACY_PROFILER
 			ZoneScoped;
 #endif
-			using type = type_test_t<std::is_same_v<T, bool>, unsigned int, T>;
+			using type = glsl::extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>;
 			return _ConvertArray<T, type>(name, values, N, 
 				[&](const std::string& name, const std::vector<type>& values) -> bool { return _SetArray(name, values); });
 		}
@@ -659,7 +661,7 @@ namespace Twin2Engine::Tools {
 #if TRACY_PROFILER
 			ZoneScoped;
 #endif
-			using type = type_test_t<std::is_same_v<T, bool>, unsigned int, T>;
+			using type = glsl::extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>;
 			return _ConvertArray<T, type>(name, values, values.size(),
 				[&](const std::string& name, const std::vector<type>& values) -> bool { return _SetArray(name, values); });
 		}
@@ -690,7 +692,7 @@ namespace Twin2Engine::Tools {
 #if TRACY_PROFILER
 			ZoneScoped;
 #endif
-			using type = glm::vec<L, type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
+			using type = glm::vec<L, extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
 			return _ConvertArray<V, type>(name, values, size, 
 				[&](const std::string& name, const std::vector<type>& values) -> bool { return _SetArray(name, values); });
 		}
@@ -701,7 +703,7 @@ namespace Twin2Engine::Tools {
 #if TRACY_PROFILER
 			ZoneScoped;
 #endif
-			using type = glm::vec<L, type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
+			using type = glm::vec<L, extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
 			return _ConvertArray<V, type>(name, values, N, 
 				[&](const std::string& name, const std::vector<type>& values) -> bool { return _SetArray(name, values); });
 		}
@@ -712,7 +714,7 @@ namespace Twin2Engine::Tools {
 #if TRACY_PROFILER
 			ZoneScoped;
 #endif
-			using type = glm::vec<L, type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
+			using type = glm::vec<L, extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
 			return _ConvertArray<V, type>(name, values, values.size(),
 				[&](const std::string& name, const std::vector<type>& values) -> bool { return _SetArray(name, values); });
 		}
@@ -743,7 +745,7 @@ namespace Twin2Engine::Tools {
 #if TRACY_PROFILER
 			ZoneScoped;
 #endif
-			using type = glm::mat<C, R, type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
+			using type = glm::mat<C, R, extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
 			return _ConvertArray<M, type>(name, values, size, 
 				[&](const std::string& name, const std::vector<type>& values) -> bool { return _SetArray(name, values); });
 		}
@@ -754,7 +756,7 @@ namespace Twin2Engine::Tools {
 #if TRACY_PROFILER
 			ZoneScoped;
 #endif
-			using type = glm::mat<C, R, type_test_t<std::is_same<T, bool>, unsigned int, T>>;
+			using type = glm::mat<C, R, extra::type_test_t<std::is_same<T, bool>, unsigned int, T>>;
 			return _ConvertArray<M, type>(name, values, N, 
 				[&](const std::string& name, const std::vector<type>& values) -> bool { return _SetArray(name, values); });
 		}
@@ -765,7 +767,7 @@ namespace Twin2Engine::Tools {
 #if TRACY_PROFILER
 			ZoneScoped;
 #endif
-			using type = glm::mat<C, R, type_test_t<std::is_same<T, bool>, unsigned int, T>>;
+			using type = glm::mat<C, R, extra::type_test_t<std::is_same<T, bool>, unsigned int, T>>;
 			return _ConvertArray<M, type>(name, values, values.size(),
 				[&](const std::string& name, const std::vector<type>& values) -> bool { return _SetArray(name, values); });
 		}

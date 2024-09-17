@@ -1,11 +1,10 @@
 #include <pch.h>
-#include <framework.h>
 #include <ValueTypes.h>
 #include <STD140Offsets.h>
 
 #if _DEBUG
 
-using namespace Twin2Engine::Tools;
+using namespace glsl;
 
 ScalarType::ScalarType(const VALUE_TYPE& type) : ValueType(), _type(type) {
 #if TRACY_PROFILER

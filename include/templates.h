@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Twin2Engine::Tools {
+namespace glsl::extra {
 	template<class T, class U, class... Us> constexpr bool is_type_in_v = (std::is_same_v<T, U> || (sizeof...(Us) > 0 ? (std::is_same_v<T, Us> || ...) : true));
 
 	template<auto A, auto B> constexpr bool is_eq_v = (A == B);

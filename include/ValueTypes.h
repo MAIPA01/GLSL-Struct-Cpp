@@ -1,10 +1,12 @@
 #pragma once
+#include <pch.h>
+#include <framework.h>
 #include <macros.h>
 
 #if _DEBUG
 
-namespace Twin2Engine::Tools {
-	ENUM_CLASS_BASE(VALUE_TYPE, uint8_t, OTHER, BOOL, INT, UINT, FLOAT, DOUBLE);
+namespace glsl {
+	ENUM_CLASS_BASE(VALUE_TYPE, unsigned char, OTHER, BOOL, INT, UINT, FLOAT, DOUBLE);
 
 	template<class T>
 	static VALUE_TYPE GetValueType() {

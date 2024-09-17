@@ -1,8 +1,7 @@
 #include <pch.h>
-#include <framework.h>
 #include <STD140Offsets.h>
 
-using namespace Twin2Engine::Tools;
+using namespace glsl;
 using namespace std;
 
 hash<string> STD140Offsets::_hasher;
@@ -90,7 +89,7 @@ STD140Offsets& STD140Offsets::operator=(STD140Offsets&& std140off)
 }
 
 #if _DEBUG
-DefineCloneFunc(Twin2Engine::Tools::STD140Offsets,
+DefineCloneFunc(glsl::STD140Offsets,
 	StandardClone(_currentOffset),
 	StandardClone(_maxAligement),
 	StandardClone(_offsets),
@@ -235,13 +234,15 @@ vector<size_t> STD140Offsets::GetArray(const string& name) const
 
 	vector<size_t> values;
 
-	unordered_map<size_t, size_t>::const_iterator map_iterator = _offsets.find(move(_hasher(move(vformat(_arrayElemFormat, make_format_args(name, unmove(0)))))));
+	size_t i = 0;
+	unordered_map<size_t, size_t>::const_iterator map_iterator = _offsets.find(move(_hasher(move(vformat(_arrayElemFormat, make_format_args(name, i))))));
+	++i;
 
-	size_t i = 1;
 	while (map_iterator != _offsets.end()) {
 		values.push_back((*map_iterator).second);
 
-		map_iterator = _offsets.find(move(_hasher(move(vformat(_arrayElemFormat, make_format_args(name, unmove(i++)))))));
+		map_iterator = _offsets.find(move(_hasher(move(vformat(_arrayElemFormat, make_format_args(name, i))))));
+		++i;
 	}
 
 	return values;

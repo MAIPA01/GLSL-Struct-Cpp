@@ -1,8 +1,7 @@
 #include <pch.h>
-#include <framework.h>
 #include <STD140Struct.h>
 
-using namespace Twin2Engine::Tools;
+using namespace glsl;
 using namespace std;
 
 size_t STD140Struct::_GetArrayElemSize(const vector<size_t>& offsets) const
@@ -291,7 +290,7 @@ STD140Struct& STD140Struct::operator=(STD140Struct&& std140s) {
 	return *this;
 }
 
-CloneFuncDefinition(Twin2Engine::Tools::STD140Struct, StandardClone(_dataOffsets), StandardClone(_data))
+CloneFuncDefinition(glsl::STD140Struct, StandardClone(_dataOffsets), StandardClone(_data))
 
 STD140Struct::~STD140Struct()
 {

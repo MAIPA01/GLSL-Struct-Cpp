@@ -1,5 +1,7 @@
 #pragma once
 
+#include <pch.h>
+#include <framework.h>
 #include <templates.h>
 #include <stringExtension.h>
 #include <macros.h>
@@ -7,7 +9,7 @@
 #include <ValueTypes.h>
 #endif
 
-namespace Twin2Engine::Tools {
+namespace glsl {
 	class STD140Offsets;
 
 	template<class T>
@@ -17,7 +19,7 @@ namespace Twin2Engine::Tools {
 		
 		const std::string var_name;
 		const size_t array_size;
-		typename type_test_t<std::is_same_v<T, STD140Offsets>, const STD140Offsets, void(*)> struct_offsets;
+		typename glsl::extra::type_test_t<std::is_same_v<T, STD140Offsets>, const STD140Offsets, void(*)> struct_offsets;
 
 		template<typename = std::enable_if_t<!std::is_same_v<T, STD140Offsets>>>
 		STD140Variable(const std::string& name) : var_name(name), array_size(0) {}
@@ -35,9 +37,9 @@ namespace Twin2Engine::Tools {
 	class STD140Offsets {
 	private:
 #pragma region CHECKS
-		template<class T> static constexpr bool scalar_check_v = is_type_in_v<T, bool, int, unsigned int, float, double>;
-		template<class T, size_t L> static constexpr bool vec_check_v = scalar_check_v<T> && is_num_in_range_v<L, 1, 4>;
-		template<class T, size_t C, size_t R> static constexpr bool mat_check_v = vec_check_v<T, C> && is_num_in_range_v<R, 1, 4>;
+		template<class T> static constexpr bool scalar_check_v = extra::is_type_in_v<T, bool, int, unsigned int, float, double>;
+		template<class T, size_t L> static constexpr bool vec_check_v = scalar_check_v<T> && extra::is_num_in_range_v<L, 1, 4>;
+		template<class T, size_t C, size_t R> static constexpr bool mat_check_v = vec_check_v<T, C> && extra::is_num_in_range_v<R, 1, 4>;
 
 		template<class T, class Ret = void> using scalar_enable_if_t = std::enable_if_t<scalar_check_v<T>, Ret>;
 		template<class V, class T, size_t L, class Ret = void> using vec_enable_if_t = std::enable_if_t<std::is_same_v<V, glm::vec<L, T>> && vec_check_v<T, L>, Ret>;
@@ -194,14 +196,14 @@ namespace Twin2Engine::Tools {
 
 			if constexpr (std::is_same_v<T, bool>) {
 				// sizeof(unsigned int) = 4
-				if constexpr (is_num_in_v<L, 1, 2, 4>) {
+				if constexpr (extra::is_num_in_v<L, 1, 2, 4>) {
 					return _Add(name, 4 * L, 4 * L
 #if _DEBUG
 						, new VecType(GetValueType<T>(), L)
 #endif
 					);
 				}
-				else if constexpr (is_num_in_v<L, 3>) {
+				else if constexpr (extra::is_num_in_v<L, 3>) {
 					return _Add(name, 4 * (L + 1), 4 * L
 #if _DEBUG
 						, new VecType(GetValueType<T>(), L)
@@ -210,14 +212,14 @@ namespace Twin2Engine::Tools {
 				}
 			}
 			else {
-				if constexpr (is_num_in_v<L, 1, 2, 4>) {
+				if constexpr (extra::is_num_in_v<L, 1, 2, 4>) {
 					return _Add(name, sizeof(T) * L, sizeof(T) * L
 #if _DEBUG
 						, new VecType(GetValueType<T>(), L)
 #endif
 					);
 				}
-				else if constexpr (is_num_in_v<L, 3>) {
+				else if constexpr (extra::is_num_in_v<L, 3>) {
 					return _Add(name, sizeof(T) * (L + 1), sizeof(T) * L
 #if _DEBUG
 						, new VecType(GetValueType<T>(), L)
@@ -244,14 +246,14 @@ namespace Twin2Engine::Tools {
 
 			if constexpr (std::is_same_v<T, bool>) {
 				// sizeof(unsigned int) = 4
-				if constexpr (is_num_in_v<L, 1, 2, 4>) {
+				if constexpr (extra::is_num_in_v<L, 1, 2, 4>) {
 					return _AddArray(name, size, 4 * L, 4 * L
 #if _DEBUG
 						, new VecType(GetValueType<T>(), L)
 #endif
 					);
 				}
-				else if constexpr (is_num_in_v<L, 3>) {
+				else if constexpr (extra::is_num_in_v<L, 3>) {
 					return _AddArray(name, size, 4 * (L + 1), 4 * L
 #if _DEBUG
 						, new VecType(GetValueType<T>(), L)
@@ -260,14 +262,14 @@ namespace Twin2Engine::Tools {
 				}
 			}
 			else {
-				if constexpr (is_num_in_v<L, 1, 2, 4>) {
+				if constexpr (extra::is_num_in_v<L, 1, 2, 4>) {
 					return _AddArray(name, size, sizeof(T) * L, sizeof(T) * L
 #if _DEBUG
 						, new VecType(GetValueType<T>(), L)
 #endif
 					);
 				}
-				else if constexpr (is_num_in_v<L, 3>) {
+				else if constexpr (extra::is_num_in_v<L, 3>) {
 					return _AddArray(name, size, sizeof(T) * (L + 1), sizeof(T) * L
 #if _DEBUG
 						, new VecType(GetValueType<T>(), L)
@@ -294,7 +296,7 @@ namespace Twin2Engine::Tools {
 
 			if constexpr (std::is_same_v<T, bool>) {
 				// sizeof(unsigned int) = 4
-				if constexpr (is_num_in_v<R, 1, 2, 4>) {
+				if constexpr (extra::is_num_in_v<R, 1, 2, 4>) {
 #if _DEBUG
 					size_t offset = _AddArray(name, C, 4 * R, 4 * R, new VecType(GetValueType<T>(), R))[0];
 					size_t nameHash = _hasher(name);
@@ -305,7 +307,7 @@ namespace Twin2Engine::Tools {
 					return _AddArray(name, C, 4 * R, 4 * R)[0];
 #endif
 				}
-				else if constexpr (is_num_in_v<R, 3>) {
+				else if constexpr (extra::is_num_in_v<R, 3>) {
 #if _DEBUG
 					size_t offset = _AddArray(name, C, 4 * (R + 1), 4 * R, new VecType(GetValueType<T>(), R))[0];
 					size_t nameHash = _hasher(name);
@@ -318,7 +320,7 @@ namespace Twin2Engine::Tools {
 				}
 			}
 			else {
-				if constexpr (is_num_in_v<R, 1, 2, 4>) {
+				if constexpr (extra::is_num_in_v<R, 1, 2, 4>) {
 #if _DEBUG
 					size_t offset = _AddArray(name, C, sizeof(T) * R, sizeof(T) * R, new VecType(GetValueType<T>(), R))[0];
 					size_t nameHash = _hasher(name);
@@ -329,7 +331,7 @@ namespace Twin2Engine::Tools {
 					return _AddArray(name, C, sizeof(T) * R, sizeof(T) * R)[0];
 #endif
 				}
-				else if constexpr (is_num_in_v<R, 3>) {
+				else if constexpr (extra::is_num_in_v<R, 3>) {
 #if _DEBUG
 					size_t offset = _AddArray(name, C, sizeof(T) * (R + 1), sizeof(T) * R, new VecType(GetValueType<T>(), R))[0];
 					size_t nameHash = _hasher(name);
@@ -367,7 +369,7 @@ namespace Twin2Engine::Tools {
 			for (size_t i = 0; i < size; ++i) {
 				if constexpr (std::is_same_v<T, bool>) {
 					// sizeof(unsigned int) = 4
-					if constexpr (is_num_in_v<R, 1, 2, 4>) {
+					if constexpr (extra::is_num_in_v<R, 1, 2, 4>) {
 #if _DEBUG
 						std::string valueName = std::vformat(_arrayElemFormat, std::make_format_args(name, i));
 						values.push_back(std::move(_AddArray(valueName, C, 4 * R, 4 * R, rowType)[0]));
@@ -378,7 +380,7 @@ namespace Twin2Engine::Tools {
 						values.push_back(std::move(_AddArray(std::move(std::vformat(_arrayElemFormat, std::make_format_args(name, i))), C, 4 * R, 4 * R)[0]));
 #endif
 					}
-					else if constexpr (is_num_in_v<R, 3>) {
+					else if constexpr (extra::is_num_in_v<R, 3>) {
 #if _DEBUG
 						std::string valueName = std::vformat(_arrayElemFormat, std::make_format_args(name, i));
 						values.push_back(std::move(_AddArray(valueName, C, 4 * (R + 1), 4 * R, rowType)[0]));
@@ -391,7 +393,7 @@ namespace Twin2Engine::Tools {
 					}
 				}
 				else {
-					if constexpr (is_num_in_v<R, 1, 2, 4>) {
+					if constexpr (extra::is_num_in_v<R, 1, 2, 4>) {
 #if _DEBUG
 						std::string valueName = std::vformat(_arrayElemFormat, std::make_format_args(name, i));
 						values.push_back(std::move(_AddArray(valueName, C, sizeof(T) * R, sizeof(T) * R, rowType)[0]));
@@ -402,7 +404,7 @@ namespace Twin2Engine::Tools {
 						values.push_back(std::move(_AddArray(std::move(std::vformat(_arrayElemFormat, std::make_format_args(name, i))), C, sizeof(T) * R, sizeof(T) * R)[0]));
 #endif
 					}
-					else if constexpr (is_num_in_v<R, 3>) {
+					else if constexpr (extra::is_num_in_v<R, 3>) {
 #if _DEBUG
 						std::string valueName = std::vformat(_arrayElemFormat, std::make_format_args(name, i));
 						values.push_back(std::move(_AddArray(valueName, C, sizeof(T) * (R + 1), sizeof(T) * R, rowType)[0]));

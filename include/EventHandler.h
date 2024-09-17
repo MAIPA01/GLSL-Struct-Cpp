@@ -1,6 +1,9 @@
 #pragma once
 
-namespace Twin2Engine::Tools {
+#include <pch.h>
+#include <framework.h>
+
+namespace glsl::extra {
 	template<typename Ret, typename... Args> using Func = std::function<Ret(Args...)>;
 	template<typename... Args> using Action = Func<void, Args...>;
 	using Method = Action<>;

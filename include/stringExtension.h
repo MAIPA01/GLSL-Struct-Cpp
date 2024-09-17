@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Twin2Engine::Tools {
+namespace glsl::extra {
 	
 	template<class String, class... Strings> void concat_impl(std::string& out, String&& string, Strings&&... strings) {
 		out += string;
