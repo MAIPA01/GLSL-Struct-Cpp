@@ -20,16 +20,22 @@ namespace glsl::extra {
 
 	template<typename... Args>
 	class EventHandler {
+		using eventType = Event<Args...>;
+		using eventsType = std::vector<eventType>;
+		using idType = size_t;
+		using removedIdsType = std::queue<idType>;
+		using eventAction = Action<Args...>;
+
 	private:
-		std::vector<Event<Args...>> _events = std::vector<Event<Args...>>();
-		size_t _freeId = 0;
-		std::queue<size_t> _removedIds = std::queue<size_t>();
+		eventsType _events = eventsType();
+		idType _freeId = idType();
+		removedIdsType _removedIds = removedIdsType();
 
 	public:
 		EventHandler() = default;
 		virtual ~EventHandler() = default;
 
-		constexpr size_t AddCallback(const Action<Args...>& callback) {
+		constexpr idType AddCallback(const eventAction& callback) {
 			Event e{
 				.ID = 0,
 				.Action = callback
@@ -45,7 +51,7 @@ namespace glsl::extra {
 			return e.ID;
 		}
 
-		bool RemoveCallback(size_t callbackId) {
+		bool RemoveCallback(idType callbackId) {
 			for (size_t i = 0; i < _events.size(); ++i) {
 				if (_events[i].ID == callbackId) {
 					_events.erase(_events.begin() + i);
@@ -63,17 +69,19 @@ namespace glsl::extra {
 		}
 
 		void Invoke(Args... args) const {
-			for (Event<Args...> event : _events) {
+			for (eventType event : _events) {
 				event.Action(args...);
 			}
 		}
 
-		constexpr size_t operator+=(const Action<Args...>& callback) {
+		constexpr idType operator+=(const eventAction& callback) {
 			return AddCallback(callback);
 		}
-		constexpr bool operator-=(size_t callbackId) {
+
+		constexpr bool operator-=(idType callbackId) {
 			return RemoveCallback(callbackId);
 		}
+
 		constexpr void operator()(Args... args) const {
 			Invoke(args...);
 		}
