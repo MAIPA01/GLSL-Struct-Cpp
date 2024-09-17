@@ -5,9 +5,7 @@
 #include <templates.h>
 #include <stringExtension.h>
 #include <macros.h>
-#if _DEBUG
 #include <ValueTypes.h>
-#endif
 
 namespace glsl {
 	class STD140Offsets;
