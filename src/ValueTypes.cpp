@@ -2,79 +2,112 @@
 #include <ValueTypes.h>
 #include <STD140Offsets.h>
 
-#if _DEBUG
-
 using namespace glsl;
+using namespace std;
+using namespace extra;
 
-ScalarType::ScalarType(const VALUE_TYPE& type) : ValueType(), _type(type) {
-#if TRACY_PROFILER
-	ZoneScoped;
-#endif
+static string glsl::GetVecType(const VALUE_TYPE& type)
+{
+	using enum VALUE_TYPE;
+	switch (type) {
+		case OTHER: return "other";
+		case BOOL: return "bvec";
+		case INT: return "ivec";
+		case UINT: return "uvec";
+		case FLOAT: return "vec";
+		case DOUBLE: return "dvec";
+		default: return "UNKNOWN";
+	}
 }
 
+static string glsl::GetMatType(const VALUE_TYPE& type)
+{
+	using enum VALUE_TYPE;
+	switch (type) {
+		case OTHER: return "other";
+		case BOOL: return "bmat";
+		case INT: return "imat";
+		case UINT: return "umat";
+		case FLOAT: return "mat";
+		case DOUBLE: return "dmat";
+		default: return "UNKNOWN";
+	}
+}
+
+static string glsl::to_string(const ValueType*& value)
+{
+	return value->to_string();
+}
+
+ScalarType::ScalarType(const VALUE_TYPE& type) : ValueType(), _type(type) {}
+
 VALUE_TYPE ScalarType::GetType() const {
-#if TRACY_PROFILER
-	ZoneScoped;
-#endif
 	return _type;
 }
 
-VecType::VecType(const VALUE_TYPE& type, const size_t& length) : ValueType(), _type(type), _length(length) {
-#if TRACY_PROFILER
-	ZoneScoped;
-#endif
+string ScalarType::to_string() const
+{
+	return glsl::to_string(_type);
 }
+
+static string glsl::to_string(const ScalarType& value)
+{
+	return value.to_string();
+}
+
+VecType::VecType(const VALUE_TYPE& type, const size_t& length) : ValueType(), _type(type), _length(length) {}
 
 VALUE_TYPE VecType::GetType() const
 {
-#if TRACY_PROFILER
-	ZoneScoped;
-#endif
 	return _type;
 }
 
 size_t VecType::GetLength() const
 {
-#if TRACY_PROFILER
-	ZoneScoped;
-#endif
 	return _length;
 }
 
-MatType::MatType(const VALUE_TYPE& type, const size_t& cols, const size_t& rows) : ValueType(), _type(type), _cols(cols), _rows(rows) {
-#if TRACY_PROFILER
-	ZoneScoped;
-#endif
+string VecType::to_string() const
+{
+	return concat(GetVecType(_type), std::to_string(_length));
 }
+
+static string glsl::to_string(const VecType& value)
+{
+	return value.to_string();
+}
+
+MatType::MatType(const VALUE_TYPE& type, const size_t& cols, const size_t& rows) : ValueType(), _type(type), _cols(cols), _rows(rows) {}
 
 VALUE_TYPE MatType::GetType() const
 {
-#if TRACY_PROFILER
-	ZoneScoped;
-#endif
 	return _type;
 }
 
 size_t MatType::GetRows() const
 {
-#if TRACY_PROFILER
-	ZoneScoped;
-#endif
 	return _rows;
 }
 
 size_t MatType::GetCols() const
 {
-#if TRACY_PROFILER
-	ZoneScoped;
-#endif
 	return _cols;
 }
 
+string MatType::to_string() const
+{
+	string out = GetMatType(_type);
+	if (_cols == _rows) concat_ref(out, std::to_string(_cols));
+	else concat_ref(out, std::to_string(_cols), "x"s, std::to_string(_rows));
+	return out;
+}
+
+static string glsl::to_string(const MatType& value)
+{
+	return value.to_string();
+}
+
 StructType::StructType(const STD140Offsets& offsets) : ValueType() {
-#if TRACY_PROFILER
-	ZoneScoped;
-#endif
 	_offsets = new STD140Offsets(offsets);
 }
 
@@ -82,20 +115,24 @@ StructType::~StructType() {
 	delete _offsets;
 }
 
-DefineCloneBaseFunc(StructType, ValueType, PointerDeepClone(_offsets, STD140Offsets))
+DefineCloneFunc(StructType, PointerDeepClone(_offsets, STD140Offsets))
 
 const STD140Offsets* StructType::GetOffsets() const
 {
-#if TRACY_PROFILER
-	ZoneScoped;
-#endif
 	return _offsets;
 }
 
+string StructType::to_string() const
+{
+	return "struct"s;
+}
+
+static string glsl::to_string(const StructType& value)
+{
+	return value.to_string();
+}
+
 ArrayType::ArrayType(const ValueType*& type, const size_t& length) : ValueType(), _length(length) {
-#if TRACY_PROFILER
-	ZoneScoped;
-#endif
 	_type = type;
 }
 
@@ -105,18 +142,20 @@ ArrayType::~ArrayType() {
 
 const ValueType* ArrayType::GetType() const
 {
-#if TRACY_PROFILER
-	ZoneScoped;
-#endif
 	return _type;
 }
 
 size_t ArrayType::GetLength() const
 {
-#if TRACY_PROFILER
-	ZoneScoped;
-#endif
 	return _length;
 }
 
-#endif
+string ArrayType::to_string() const
+{
+	return concat(_type->to_string(), "["s, std::to_string(_length), "]"s);
+}
+
+static string glsl::to_string(const ArrayType& value)
+{
+	return value.to_string();
+}

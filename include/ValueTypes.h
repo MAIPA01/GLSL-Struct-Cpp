@@ -3,10 +3,8 @@
 #include <framework.h>
 #include <macros.h>
 
-#if _DEBUG
-
 namespace glsl {
-	ENUM_CLASS_BASE(VALUE_TYPE, unsigned char, OTHER, BOOL, INT, UINT, FLOAT, DOUBLE);
+	ENUM_CLASS_BASE_STRING(VALUE_TYPE, uint8_t, OTHER, "other", BOOL, "bool", INT, "int", UINT, "uint", FLOAT, "float", DOUBLE, "double");
 
 	template<class T>
 	static VALUE_TYPE GetValueType() {
@@ -23,12 +21,16 @@ namespace glsl {
 			return VALUE_TYPE::FLOAT;
 		}
 		else if constexpr (std::is_same_v<T, double>) {
-			return VALUE_TYPE::BOOL;
+			return VALUE_TYPE::DOUBLE;
 		}
 		else {
 			return VALUE_TYPE::OTHER;
 		}
 	}
+
+	static std::string GetVecType(const VALUE_TYPE& type);
+
+	static std::string GetMatType(const VALUE_TYPE& type);
 
 	class ValueType {
 	protected:
@@ -36,8 +38,12 @@ namespace glsl {
 	public:
 		virtual ~ValueType() = default;
 
-		CloneFunc(ValueType);
+		DeclareAbstractCloneFunc(ValueType);
+
+		virtual std::string to_string() const = 0;
 	};
+
+	static std::string to_string(const ValueType*& value);
 
 	class ScalarType : public ValueType {
 	private:
@@ -49,10 +55,14 @@ namespace glsl {
 		ScalarType(const VALUE_TYPE& type);
 		virtual ~ScalarType() = default;
 
-		CloneBaseFunc(ScalarType, ValueType, _type)
+		CloneFunc(ScalarType, _type)
 
 		VALUE_TYPE GetType() const;
+
+		virtual std::string to_string() const override;
 	};
+
+	static std::string to_string(const ScalarType& value);
 
 	class VecType : public ValueType {
 	private:
@@ -66,11 +76,15 @@ namespace glsl {
 		VecType(const VALUE_TYPE& type, const size_t& length);
 		virtual ~VecType() = default;
 
-		CloneBaseFunc(VecType, ValueType, _type, _length)
+		CloneFunc(VecType, _type, _length)
 
 		VALUE_TYPE GetType() const;
 		size_t GetLength() const;
+
+		virtual std::string to_string() const override;
 	};
+
+	static std::string to_string(const VecType& value);
 
 	class MatType : public ValueType {
 	private:
@@ -84,12 +98,16 @@ namespace glsl {
 		MatType(const VALUE_TYPE& type, const size_t& cols, const size_t& rows);
 		virtual ~MatType() = default;
 
-		CloneBaseFunc(MatType, ValueType, _type, _cols, _rows)
+		CloneFunc(MatType, _type, _cols, _rows)
 
 		VALUE_TYPE GetType() const;
 		size_t GetRows() const;
 		size_t GetCols() const;
+
+		virtual std::string to_string() const override;
 	};
+
+	static std::string to_string(const MatType& value);
 
 	class STD140Offsets;
 
@@ -103,10 +121,14 @@ namespace glsl {
 		StructType(const STD140Offsets& offsets);
 		virtual ~StructType();
 
-		DeclareCloneBaseFunc(StructType);
+		DeclareCloneFunc(StructType);
 
 		const STD140Offsets* GetOffsets() const;
+
+		virtual std::string to_string() const override;
 	};
+
+	static std::string to_string(const StructType& value);
 
 	class ArrayType : public ValueType {
 	private:
@@ -119,11 +141,13 @@ namespace glsl {
 		ArrayType(const ValueType*& type, const size_t& length);
 		virtual ~ArrayType();
 
-		CloneAdvancedBaseFunc(ArrayType, ValueType, _type, _type->Clone(), StandardClone(_length));
+		CloneAdvancedFunc(ArrayType, _type, _type->Clone(), StandardClone(_length));
 
 		const ValueType* GetType() const;
 		size_t GetLength() const;
-	};
-}
 
-#endif
+		virtual std::string to_string() const override;
+	};
+
+	static std::string to_string(const ArrayType& value);
+}
