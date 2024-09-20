@@ -138,8 +138,7 @@
 
 #pragma region STANDARD_ENUMS_WITH_USER_DEFINED_TO_STRING
 
-#define FIRST_ELEM(A, B, ...) A
-#define SECOND_ELEM(A, B, ...) B
+#define FIRST_ELEM(A, ...) A
 #define STANDARD_ENUM_STRING(name) name, #name
 #define ENUM_STRING_CASE(name, value, ...) case name: return value;
 

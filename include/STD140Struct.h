@@ -417,12 +417,8 @@ namespace glsl {
 		STD140Struct(const STD140Struct& std140s);
 		STD140Struct(STD140Struct&& std140s);
 		STD140Struct(const STD140Offsets& structOffsets, const std::vector<char>& data = std::vector<char>());
-		template<class... Args>
-		STD140Struct(const STD140Variable<Args>&... vars) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-
+		template<class... Args, size_t... nums>
+		STD140Struct(const STDVariable<Args, nums>&... vars) {
 			_dataOffsets = STD140Offsets(vars...);
 			_data.resize(_dataOffsets.GetSize());
 		}

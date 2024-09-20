@@ -1,4 +1,5 @@
 #pragma once
+#include <types.h>
 
 namespace glsl::extra {
 
@@ -52,4 +53,21 @@ namespace glsl::extra {
 	template<typename T> const T& unmove(T&& x) {
 		return x;
 	};
+
+#pragma region CHECKS
+	template<class T> static constexpr bool scalar_check_v = extra::is_type_in_v<T, bool, int, unsigned int, float, double>;
+	template<class T, size_t L> static constexpr bool vec_check_v = scalar_check_v<T> && extra::is_num_in_range_v<L, 2, 4>;
+	template<class T, size_t C, size_t R> static constexpr bool mat_check_v = vec_check_v<T, C>&& extra::is_num_in_range_v<R, 2, 4>;
+	
+	template<class T> static constexpr bool struct140_check_v = std::is_same_v<T, STD140Offsets>;
+	template<class T> static constexpr bool struct430_check_v = std::is_same_v<T, STD430Offsets>;
+	template<class T> static constexpr bool struct_check_v = struct140_check_v<T> || struct430_check_v<T>;
+
+	template<class T, class Ret = void> using scalar_enable_if_t = std::enable_if_t<scalar_check_v<T>, Ret>;
+	template<class V, class T, size_t L, class Ret = void> using vec_enable_if_t = std::enable_if_t<std::is_same_v<V, glm::vec<L, T>>&& vec_check_v<T, L>, Ret>;
+	template<class M, class T, size_t C, size_t R, class Ret = void> using mat_enable_if_t = std::enable_if_t<std::is_same_v<M, glm::mat<C, R, T>>&& mat_check_v<T, C, R>, Ret>;
+
+	template<class T> using struct140_enable_if_t = std::enable_if_t<struct140_check_v<T>>;
+	template<class T> using struct430_enable_if_t = std::enable_if_t<struct430_check_v<T>>;
+#pragma endregion
 }

@@ -2,57 +2,22 @@
 
 #include <pch.h>
 #include <framework.h>
+#include <macros.h>
 #include <templates.h>
 #include <stringExtension.h>
-#include <macros.h>
 #include <ValueTypes.h>
+#include <STDVariable.h>
 
 namespace glsl {
-	class STD140Offsets;
-
-	template<class T>
-	struct STD140Variable {
-	public:
-		using var_type = T;
-		
-		const std::string var_name;
-		const size_t array_size;
-		typename glsl::extra::type_test_t<std::is_same_v<T, STD140Offsets>, const STD140Offsets, void(*)> struct_offsets;
-
-		template<typename = std::enable_if_t<!std::is_same_v<T, STD140Offsets>>>
-		STD140Variable(const std::string& name) : var_name(name), array_size(0) {}
-
-		template<typename = std::enable_if_t<!std::is_same_v<T, STD140Offsets>>>
-		STD140Variable(const std::string& name, const size_t& size) : var_name(name), array_size(size) {}
-
-		template<typename = std::enable_if_t<std::is_same_v<T, STD140Offsets>>>
-		STD140Variable(const std::string& name, const STD140Offsets offsets) : var_name(name), struct_offsets(offsets), array_size(0) {}
-
-		template<typename = std::enable_if_t<std::is_same_v<T, STD140Offsets>>>
-		STD140Variable(const std::string& name, const STD140Offsets offsets, const size_t& size) : var_name(name), struct_offsets(offsets), array_size(size) {}
-	};
 
 	class STD140Offsets {
 	private:
-#pragma region CHECKS
-		template<class T> static constexpr bool scalar_check_v = extra::is_type_in_v<T, bool, int, unsigned int, float, double>;
-		template<class T, size_t L> static constexpr bool vec_check_v = scalar_check_v<T> && extra::is_num_in_range_v<L, 1, 4>;
-		template<class T, size_t C, size_t R> static constexpr bool mat_check_v = vec_check_v<T, C> && extra::is_num_in_range_v<R, 1, 4>;
-
-		template<class T, class Ret = void> using scalar_enable_if_t = std::enable_if_t<scalar_check_v<T>, Ret>;
-		template<class V, class T, size_t L, class Ret = void> using vec_enable_if_t = std::enable_if_t<std::is_same_v<V, glm::vec<L, T>> && vec_check_v<T, L>, Ret>;
-		template<class M, class T, size_t C, size_t R, class Ret = void> using mat_enable_if_t = std::enable_if_t<std::is_same_v<M, glm::mat<C, R, T>> && mat_check_v<T, C, R>, Ret>;
-
-#pragma endregion
-
 		size_t _currentOffset = 0;
 		size_t _maxAligement = 0;
 
 		std::unordered_map<size_t, size_t> _offsets;
 		std::unordered_map<size_t, std::string> _names;
-#if _DEBUG
 		std::unordered_map<size_t, const ValueType*> _types;
-#endif
 
 		static std::hash<std::string> _hasher;
 
@@ -61,51 +26,40 @@ namespace glsl {
 
 		bool _CheckVariable(const std::string& name) const;
 
-		template<class T, class... Ts>
-		void _AddMultiple(const STD140Variable<T>& var, const STD140Variable<Ts>&... vars) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-
+		template<class T, class... Ts, size_t num, size_t... nums>
+		std::enable_if_t<!std::is_same_v<T, STD430Offsets>>
+		_AddMultiple(const STDVariable<T, num>& var, const STDVariable<Ts, nums>&... vars) {
 			if constexpr (std::is_same_v<T, STD140Offsets>) {
-				if (var.array_size == 0) {
+				if (num == 0) {
 					Add(var.var_name, var.struct_offsets);
 				}
 				else {
-					Add(var.var_name, var.struct_offsets, var.array_size);
+					Add(var.var_name, var.struct_offsets, num);
 				}
 			}
 			else {
-				if (var.array_size == 0) {
+				if (num == 0) {
 					Add<T>(var.var_name);
 				}
 				else {
-					Add<T>(var.var_name, var.array_size);
+					Add<T>(var.var_name, num);
 				}
 			}
-			if constexpr (sizeof...(Ts) > 0) {
+			if constexpr (sizeof...(Ts) > 0 && sizeof...(nums) > 0) {
 				_AddMultiple(vars...);
 			}
 		}
 
-		size_t _Add(const std::string& name, size_t baseAligement, size_t baseOffset 
-#if _DEBUG 
-			, const ValueType* type 
-#endif
-		);
-		std::vector<size_t> _AddArray(const std::string& name, size_t arraySize, size_t baseAligement, size_t baseOffset
-#if _DEBUG
-			, const ValueType* typeTemplate
-#endif
-		);
+		size_t _Add(const std::string& name, size_t baseAligement, size_t baseOffset, const ValueType* type);
+		std::vector<size_t> _AddArray(const std::string& name, size_t arraySize, size_t baseAligement, size_t baseOffset, const ValueType* typeTemplate);
 
 	public:
 		STD140Offsets() = default;
 		STD140Offsets(STD140Offsets& std140off);
 		STD140Offsets(const STD140Offsets& std140off);
 		STD140Offsets(STD140Offsets&& std140off);
-		template<class... Args>
-		STD140Offsets(const STD140Variable<Args>&... vars) {
+		template<class... Args, size_t... nums>
+		STD140Offsets(const STDVariable<Args, nums>&... vars) {
 			_AddMultiple(vars...);
 		}
 		virtual ~STD140Offsets();
@@ -119,419 +73,269 @@ namespace glsl {
 		bool Contains(const std::string& name) const;
 
 #pragma region ADD_SCALAR
-		template<class T>
-		typename scalar_enable_if_t<T, size_t>
+		template<class T, size_t size = 0>
+		typename extra::scalar_enable_if_t<T, extra::type_test_t<(size == 0), size_t, std::vector<size_t>>>
 		Add(const std::string& name) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
 			if (_CheckVariable(name)) {
-				return 0;
+				if constexpr (size == 0) {
+					return 0;
+				}
+				else {
+					return std::vector<size_t>();
+				}
 			}
 
-			if constexpr (std::is_same_v<T, bool>) {
-				// sizeof(unsigned int) = 4
-				return _Add(name, 4, 4
-#if _DEBUG
-					, new ScalarType(GetValueType<T>())
-#endif
-				);
+			if constexpr (size == 0) {
+				if constexpr (std::is_same_v<T, bool>) {
+					// sizeof(unsigned int) = 4
+					return _Add(name, 4, 4, new ScalarType(GetValueType<T>()));
+				}
+				else {
+					return _Add(name, sizeof(T), sizeof(T), new ScalarType(GetValueType<T>()));
+				}
 			}
 			else {
-				return _Add(name, sizeof(T), sizeof(T)
-#if _DEBUG
-					, new ScalarType(GetValueType<T>())
-#endif
-				);
+				if constexpr (std::is_same_v<T, bool>) {
+					// sizeof(unsigned int) = 4
+					return _AddArray(name, size, 4, 4, new ScalarType(GetValueType<T>()));
+				}
+				else {
+					return _AddArray(name, size, sizeof(T), sizeof(T), new ScalarType(GetValueType<T>()));
+				}
 			}
 		}
-
-#pragma region ADD_SCALAR_ARRAY
-		template<class T>
-		typename scalar_enable_if_t<T, std::vector<size_t>>
-		Add(const std::string& name, size_t size) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-			if (size == 0) {
-				return std::vector<size_t>();
-			}
-
-			if (_CheckVariable(name)) {
-				return std::vector<size_t>();
-			}
-
-			if constexpr (std::is_same_v<T, bool>) {
-				// sizeof(unsigned int) = 4
-				return _AddArray(name, size, 4, 4
-#if _DEBUG
-					, new ScalarType(GetValueType<T>())
-#endif
-				);
-			}
-			else {
-				return _AddArray(name, size, sizeof(T), sizeof(T)
-#if _DEBUG
-					, new ScalarType(GetValueType<T>())
-#endif
-				);
-			}
-		}
-
-#pragma endregion
 #pragma endregion
 
 #pragma region ADD_VEC
-		template<class V, class T = V::value_type, size_t L = V::length()>
-		typename vec_enable_if_t<V, T, L, size_t>
+		template<class V, size_t size = 0, class T = V::value_type, size_t L = V::length()>
+		typename extra::vec_enable_if_t<V, T, L, extra::type_test_t<(size == 0), size_t, std::vector<size_t>>>
 		Add(const std::string& name) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
 			if (_CheckVariable(name)) {
-				return 0;
-			}
-
-			if constexpr (std::is_same_v<T, bool>) {
-				// sizeof(unsigned int) = 4
-				if constexpr (extra::is_num_in_v<L, 1, 2, 4>) {
-					return _Add(name, 4 * L, 4 * L
-#if _DEBUG
-						, new VecType(GetValueType<T>(), L)
-#endif
-					);
+				if constexpr (size == 0) {
+					return 0;
 				}
-				else if constexpr (extra::is_num_in_v<L, 3>) {
-					return _Add(name, 4 * (L + 1), 4 * L
-#if _DEBUG
-						, new VecType(GetValueType<T>(), L)
-#endif
-					);
+				else {
+					return std::vector<size_t>();
 				}
 			}
-			else {
-				if constexpr (extra::is_num_in_v<L, 1, 2, 4>) {
-					return _Add(name, sizeof(T) * L, sizeof(T) * L
-#if _DEBUG
-						, new VecType(GetValueType<T>(), L)
-#endif
-					);
-				}
-				else if constexpr (extra::is_num_in_v<L, 3>) {
-					return _Add(name, sizeof(T) * (L + 1), sizeof(T) * L
-#if _DEBUG
-						, new VecType(GetValueType<T>(), L)
-#endif
-					);
-				}
-			}
-		}
 
-#pragma region ADD_VEC_ARRAY
-		template<class V, class T = V::value_type, size_t L = V::length()>
-		typename vec_enable_if_t<V, T, L, std::vector<size_t>>
-		Add(const std::string& name, size_t size) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-			if (size == 0) {
-				return std::vector<size_t>();
-			}
-
-			if (_CheckVariable(name)) {
-				return std::vector<size_t>();
-			}
-
-			if constexpr (std::is_same_v<T, bool>) {
-				// sizeof(unsigned int) = 4
-				if constexpr (extra::is_num_in_v<L, 1, 2, 4>) {
-					return _AddArray(name, size, 4 * L, 4 * L
-#if _DEBUG
-						, new VecType(GetValueType<T>(), L)
-#endif
-					);
-				}
-				else if constexpr (extra::is_num_in_v<L, 3>) {
-					return _AddArray(name, size, 4 * (L + 1), 4 * L
-#if _DEBUG
-						, new VecType(GetValueType<T>(), L)
-#endif
-					);
-				}
-			}
-			else {
-				if constexpr (extra::is_num_in_v<L, 1, 2, 4>) {
-					return _AddArray(name, size, sizeof(T) * L, sizeof(T) * L
-#if _DEBUG
-						, new VecType(GetValueType<T>(), L)
-#endif
-					);
-				}
-				else if constexpr (extra::is_num_in_v<L, 3>) {
-					return _AddArray(name, size, sizeof(T) * (L + 1), sizeof(T) * L
-#if _DEBUG
-						, new VecType(GetValueType<T>(), L)
-#endif
-					);
-				}
-			}
-		}
-
-#pragma endregion
-#pragma endregion
-
-#pragma region ADD_MAT
-		template<class M, class T = M::value_type, size_t C = M::row_type::length(), size_t R = M::col_type::length()>
-		typename mat_enable_if_t<M, T, C, R, size_t>
-		Add(const std::string& name) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-
-			if (_CheckVariable(name)) {
-				return 0;
-			}
-
-			if constexpr (std::is_same_v<T, bool>) {
-				// sizeof(unsigned int) = 4
-				if constexpr (extra::is_num_in_v<R, 1, 2, 4>) {
-#if _DEBUG
-					size_t offset = _AddArray(name, C, 4 * R, 4 * R, new VecType(GetValueType<T>(), R))[0];
-					size_t nameHash = _hasher(name);
-					delete _types[nameHash];
-					_types[nameHash] = new MatType(GetValueType<T>(), C, R);
-					return offset;
-#else
-					return _AddArray(name, C, 4 * R, 4 * R)[0];
-#endif
-				}
-				else if constexpr (extra::is_num_in_v<R, 3>) {
-#if _DEBUG
-					size_t offset = _AddArray(name, C, 4 * (R + 1), 4 * R, new VecType(GetValueType<T>(), R))[0];
-					size_t nameHash = _hasher(name);
-					delete _types[nameHash];
-					_types[nameHash] = new MatType(GetValueType<T>(), C, R);
-					return offset;
-#else
-					return _AddArray(name, C, 4 * (R + 1), 4 * R)[0];
-#endif
-				}
-			}
-			else {
-				if constexpr (extra::is_num_in_v<R, 1, 2, 4>) {
-#if _DEBUG
-					size_t offset = _AddArray(name, C, sizeof(T) * R, sizeof(T) * R, new VecType(GetValueType<T>(), R))[0];
-					size_t nameHash = _hasher(name);
-					delete _types[nameHash];
-					_types[nameHash] = new MatType(GetValueType<T>(), C, R);
-					return offset;
-#else
-					return _AddArray(name, C, sizeof(T) * R, sizeof(T) * R)[0];
-#endif
-				}
-				else if constexpr (extra::is_num_in_v<R, 3>) {
-#if _DEBUG
-					size_t offset = _AddArray(name, C, sizeof(T) * (R + 1), sizeof(T) * R, new VecType(GetValueType<T>(), R))[0];
-					size_t nameHash = _hasher(name);
-					delete _types[nameHash];
-					_types[nameHash] = new MatType(GetValueType<T>(), C, R);
-					return offset;
-#else
-					return _AddArray(name, C, sizeof(T) * (R + 1), sizeof(T) * R)[0];
-#endif
-				}
-			}
-		}
-
-#pragma region ADD_MAT_ARRAY
-		template<class M, class T = M::value_type, size_t C = M::row_type::length(), size_t R = M::col_type::length()>
-		typename mat_enable_if_t<M, T, C, R, std::vector<size_t>>
-		Add(const std::string& name, size_t size) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-
-			if (size == 0) {
-				return std::vector<size_t>();
-			}
-
-			if (_CheckVariable(name)) {
-				return std::vector<size_t>();
-			}
-
-			std::vector<size_t> values;
-#if _DEBUG
-			const ValueType* matType = new MatType(GetValueType<T>(), C, R);
-			const ValueType* rowType = new VecType(GetValueType<T>(), R);
-#endif
-			for (size_t i = 0; i < size; ++i) {
+			if constexpr (size == 0) {
 				if constexpr (std::is_same_v<T, bool>) {
 					// sizeof(unsigned int) = 4
-					if constexpr (extra::is_num_in_v<R, 1, 2, 4>) {
-#if _DEBUG
-						std::string valueName = std::vformat(_arrayElemFormat, std::make_format_args(name, i));
-						values.push_back(std::move(_AddArray(valueName, C, 4 * R, 4 * R, rowType)[0]));
-						size_t nameHash = _hasher(valueName);
-						delete _types[nameHash];
-						_types[nameHash] = matType->Clone();
-#else
-						values.push_back(std::move(_AddArray(std::move(std::vformat(_arrayElemFormat, std::make_format_args(name, i))), C, 4 * R, 4 * R)[0]));
-#endif
+					if constexpr (extra::is_num_in_v<L, 2, 4>) {
+						return _Add(name, 4 * L, 4 * L, new VecType(GetValueType<T>(), L));
 					}
-					else if constexpr (extra::is_num_in_v<R, 3>) {
-#if _DEBUG
-						std::string valueName = std::vformat(_arrayElemFormat, std::make_format_args(name, i));
-						values.push_back(std::move(_AddArray(valueName, C, 4 * (R + 1), 4 * R, rowType)[0]));
-						size_t nameHash = _hasher(valueName);
-						delete _types[nameHash];
-						_types[nameHash] = matType->Clone();
-#else
-						values.push_back(std::move(_AddArray(std::move(std::vformat(_arrayElemFormat, std::make_format_args(name, i))), C, 4 * (R + 1), 4 * R)[0]));
-#endif
+					else {
+						return _Add(name, 4 * (L + 1), 4 * L, new VecType(GetValueType<T>(), L));
 					}
 				}
 				else {
-					if constexpr (extra::is_num_in_v<R, 1, 2, 4>) {
-#if _DEBUG
-						std::string valueName = std::vformat(_arrayElemFormat, std::make_format_args(name, i));
-						values.push_back(std::move(_AddArray(valueName, C, sizeof(T) * R, sizeof(T) * R, rowType)[0]));
-						size_t nameHash = _hasher(valueName);
-						delete _types[nameHash];
-						_types[nameHash] = matType->Clone();
-#else
-						values.push_back(std::move(_AddArray(std::move(std::vformat(_arrayElemFormat, std::make_format_args(name, i))), C, sizeof(T) * R, sizeof(T) * R)[0]));
-#endif
+					if constexpr (extra::is_num_in_v<L, 2, 4>) {
+						return _Add(name, sizeof(T) * L, sizeof(T) * L, new VecType(GetValueType<T>(), L));
 					}
-					else if constexpr (extra::is_num_in_v<R, 3>) {
-#if _DEBUG
-						std::string valueName = std::vformat(_arrayElemFormat, std::make_format_args(name, i));
-						values.push_back(std::move(_AddArray(valueName, C, sizeof(T) * (R + 1), sizeof(T) * R, rowType)[0]));
-						size_t nameHash = _hasher(valueName);
-						delete _types[nameHash];
-						_types[nameHash] = matType->Clone();
-#else
-						values.push_back(std::move(_AddArray(std::move(std::vformat(_arrayElemFormat, std::make_format_args(name, i))), C, sizeof(T) * (R + 1), sizeof(T) * R)[0]));
-#endif
+					else {
+						return _Add(name, sizeof(T) * (L + 1), sizeof(T) * L, new VecType(GetValueType<T>(), L));
 					}
 				}
 			}
+			else {
+				if constexpr (std::is_same_v<T, bool>) {
+					// sizeof(unsigned int) = 4
+					if constexpr (extra::is_num_in_v<L, 1, 2, 4>) {
+						return _AddArray(name, size, 4 * L, 4 * L, new VecType(GetValueType<T>(), L));
+					}
+					else {
+						return _AddArray(name, size, 4 * (L + 1), 4 * L, new VecType(GetValueType<T>(), L));
+					}
+				}
+				else {
+					if constexpr (extra::is_num_in_v<L, 2, 4>) {
+						return _AddArray(name, size, sizeof(T) * L, sizeof(T) * L, new VecType(GetValueType<T>(), L));
+					}
+					else {
+						return _AddArray(name, size, sizeof(T) * (L + 1), sizeof(T) * L, new VecType(GetValueType<T>(), L));
+					}
+				}
+			}
+		}
+#pragma endregion
 
-			// SET ARRAY BEGIN POINTER
-			size_t nameHash = std::move(_hasher(name));
-			_offsets[nameHash] = values[0];
-			_names[nameHash] = name;
-#if _DEBUG
-			_types[nameHash] = new ArrayType(matType, size);
-#endif
-			return values;
+#pragma region ADD_MAT
+		template<class M, size_t size = 0, class T = M::value_type, size_t C = M::row_type::length(), size_t R = M::col_type::length()>
+		typename extra::mat_enable_if_t<M, T, C, R, extra::type_test_t<(size == 0), size_t, std::vector<size_t>>>
+		Add(const std::string& name) {
+			if (_CheckVariable(name)) {
+				if constexpr (size == 0) {
+					return 0;
+				}
+				else {
+					return std::vector<size_t>();
+				}
+			}
+
+			if constexpr (size == 0) {
+				if constexpr (std::is_same_v<T, bool>) {
+					// sizeof(unsigned int) = 4
+					if constexpr (extra::is_num_in_v<R, 2, 4>) {
+						size_t offset = _AddArray(name, C, 4 * R, 4 * R, new VecType(GetValueType<T>(), R))[0];
+						size_t nameHash = _hasher(name);
+						delete _types[nameHash];
+						_types[nameHash] = new MatType(GetValueType<T>(), C, R);
+						return offset;
+					}
+					else {
+						size_t offset = _AddArray(name, C, 4 * (R + 1), 4 * R, new VecType(GetValueType<T>(), R))[0];
+						size_t nameHash = _hasher(name);
+						delete _types[nameHash];
+						_types[nameHash] = new MatType(GetValueType<T>(), C, R);
+						return offset;
+					}
+				}
+				else {
+					if constexpr (extra::is_num_in_v<R, 2, 4>) {
+						size_t offset = _AddArray(name, C, sizeof(T) * R, sizeof(T) * R, new VecType(GetValueType<T>(), R))[0];
+						size_t nameHash = _hasher(name);
+						delete _types[nameHash];
+						_types[nameHash] = new MatType(GetValueType<T>(), C, R);
+						return offset;
+					}
+					else {
+						size_t offset = _AddArray(name, C, sizeof(T) * (R + 1), sizeof(T) * R, new VecType(GetValueType<T>(), R))[0];
+						size_t nameHash = _hasher(name);
+						delete _types[nameHash];
+						_types[nameHash] = new MatType(GetValueType<T>(), C, R);
+						return offset;
+					}
+				}
+			}
+			else {
+				std::vector<size_t> values;
+
+				const ValueType* matType = new MatType(GetValueType<T>(), C, R);
+				const ValueType* rowType = new VecType(GetValueType<T>(), R);
+
+				for (size_t i = 0; i < size; ++i) {
+					if constexpr (std::is_same_v<T, bool>) {
+						// sizeof(unsigned int) = 4
+						if constexpr (extra::is_num_in_v<R, 2, 4>) {
+							std::string valueName = std::vformat(_arrayElemFormat, std::make_format_args(name, i));
+							values.push_back(std::move(_AddArray(valueName, C, 4 * R, 4 * R, rowType)[0]));
+							size_t nameHash = _hasher(valueName);
+							delete _types[nameHash];
+							_types[nameHash] = matType->Clone();
+						}
+						else {
+							std::string valueName = std::vformat(_arrayElemFormat, std::make_format_args(name, i));
+							values.push_back(std::move(_AddArray(valueName, C, 4 * (R + 1), 4 * R, rowType)[0]));
+							size_t nameHash = _hasher(valueName);
+							delete _types[nameHash];
+							_types[nameHash] = matType->Clone();
+						}
+					}
+					else {
+						if constexpr (extra::is_num_in_v<R, 2, 4>) {
+							std::string valueName = std::vformat(_arrayElemFormat, std::make_format_args(name, i));
+							values.push_back(std::move(_AddArray(valueName, C, sizeof(T) * R, sizeof(T) * R, rowType)[0]));
+							size_t nameHash = _hasher(valueName);
+							delete _types[nameHash];
+							_types[nameHash] = matType->Clone();
+						}
+						else {
+							std::string valueName = std::vformat(_arrayElemFormat, std::make_format_args(name, i));
+							values.push_back(std::move(_AddArray(valueName, C, sizeof(T) * (R + 1), sizeof(T) * R, rowType)[0]));
+							size_t nameHash = _hasher(valueName);
+							delete _types[nameHash];
+							_types[nameHash] = matType->Clone();
+						}
+					}
+				}
+
+				// SET ARRAY BEGIN POINTER
+				size_t nameHash = std::move(_hasher(name));
+				_offsets[nameHash] = values[0];
+				_names[nameHash] = name;
+				_types[nameHash] = new ArrayType(matType, size);
+				return values;
+			}
 		}
 
-#pragma endregion
 #pragma endregion
 
 #pragma region ADD_STRUCT
-		size_t Add(const std::string& name, const STD140Offsets& structTemplate) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-			
+		template<size_t size = 0>
+		typename extra::type_test_t<(size == 0), size_t, std::vector<size_t>>
+		Add(const std::string& name, const STD140Offsets& structTemplate) {			
 			if (_CheckVariable(name)) {
-				return 0;
+				if constexpr (size == 0) {
+					return 0;
+				}
+				else {
+					return std::vector<size_t>();
+				}
 			}
 
-			size_t aligementOffset = std::move(_Add(name, structTemplate.GetBaseAligement(), structTemplate._currentOffset
-#if _DEBUG
-				, new StructType(structTemplate)
-#endif
-			));
-			std::string valueName;
-			size_t nameHash;
-			for (const auto& off : structTemplate._offsets) {
-				valueName = std::move(std::vformat(_subElemFormat, std::make_format_args(name, (*structTemplate._names.find(off.first)).second)));
-				
-				nameHash = std::move(_hasher(valueName));
-				_offsets[nameHash] = aligementOffset + off.second;
-				_names[nameHash] = valueName;
-#if _DEBUG
-				_types[nameHash] = (*structTemplate._types.find(off.first)).second->Clone();
-#endif
-			}
-
-			// ADD PADDING
-			if (_currentOffset % 16 != 0) {
-				_currentOffset += 16 - (_currentOffset % 16);
-			}
-			return aligementOffset;
-		}
-
-#pragma region ADD_STRUCT_ARRAY
-		std::vector<size_t> Add(const std::string& name, const STD140Offsets& structTemplate, size_t size) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-
-			if (size == 0) {
-				return std::vector<size_t>();
-			}
-
-			if (_CheckVariable(name)) {
-				return std::vector<size_t>();
-			}
-
-			std::vector<size_t> values;
-			std::string arrayElemName;
-			size_t aligementOffset;
-			std::string valueName;
-			size_t nameHash;
-
-#if _DEBUG
-			const ValueType* structType = new StructType(structTemplate);
-#endif
-			for (size_t i = 0; i < size; ++i) {
-				arrayElemName = std::move(std::vformat(_arrayElemFormat, std::make_format_args(name, i)));
-				values.push_back((aligementOffset = std::move(_Add(arrayElemName, structTemplate.GetBaseAligement(), structTemplate._currentOffset
-#if _DEBUG
-					, structType->Clone()
-#endif
-				))));
-
+			if constexpr (size == 0) {
+				size_t aligementOffset = std::move(_Add(name, structTemplate.GetBaseAligement(), structTemplate._currentOffset, new StructType(structTemplate)));
+				std::string valueName;
+				size_t nameHash;
 				for (const auto& off : structTemplate._offsets) {
-					valueName = std::move(std::vformat(_subElemFormat, std::make_format_args(arrayElemName, (*structTemplate._names.find(off.first)).second)));
+					valueName = std::move(std::vformat(_subElemFormat, std::make_format_args(name, (*structTemplate._names.find(off.first)).second)));
 
 					nameHash = std::move(_hasher(valueName));
 					_offsets[nameHash] = aligementOffset + off.second;
 					_names[nameHash] = valueName;
-#if _DEBUG
 					_types[nameHash] = (*structTemplate._types.find(off.first)).second->Clone();
-#endif
 				}
 
 				// ADD PADDING
 				if (_currentOffset % 16 != 0) {
 					_currentOffset += 16 - (_currentOffset % 16);
 				}
+				return aligementOffset;
 			}
+			else {
+				std::vector<size_t> values;
+				std::string arrayElemName;
+				size_t aligementOffset;
+				std::string valueName;
+				size_t nameHash;
 
-			// SET ARRAY BEGIN POINTER
-			nameHash = std::move(_hasher(name));
-			_offsets[nameHash] = values[0];
-			_names[nameHash] = name;
-#if _DEBUG
-			_types[nameHash] = new ArrayType(structType, size);
-#endif
-			return values;
+				const ValueType* structType = new StructType(structTemplate);
+
+				for (size_t i = 0; i < size; ++i) {
+					arrayElemName = std::move(std::vformat(_arrayElemFormat, std::make_format_args(name, i)));
+					values.push_back((aligementOffset = std::move(_Add(arrayElemName, structTemplate.GetBaseAligement(), structTemplate._currentOffset, structType->Clone()))));
+
+					for (const auto& off : structTemplate._offsets) {
+						valueName = std::move(std::vformat(_subElemFormat, std::make_format_args(arrayElemName, (*structTemplate._names.find(off.first)).second)));
+
+						nameHash = std::move(_hasher(valueName));
+						_offsets[nameHash] = aligementOffset + off.second;
+						_names[nameHash] = valueName;
+						_types[nameHash] = (*structTemplate._types.find(off.first)).second->Clone();
+					}
+
+					// ADD PADDING
+					if (_currentOffset % 16 != 0) {
+						_currentOffset += 16 - (_currentOffset % 16);
+					}
+				}
+
+				// SET ARRAY BEGIN POINTER
+				nameHash = std::move(_hasher(name));
+				_offsets[nameHash] = values[0];
+				_names[nameHash] = name;
+				_types[nameHash] = new ArrayType(structType, size);
+				return values;
+			}
 		}
-
-#pragma endregion
 #pragma endregion
 
 		size_t Get(const std::string& name) const;
 		std::vector<size_t> GetArray(const std::string& name) const;
 
-#if _DEBUG
 		const ValueType* GetType(const std::string& name) const;
 		std::vector<std::string> GetNames() const;
-#endif
 
 		size_t GetBaseAligement() const;
 		size_t GetSize() const;
