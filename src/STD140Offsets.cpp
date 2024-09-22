@@ -11,10 +11,6 @@ const char* const STD140Offsets::_subElemFormat = "{0}.{1}";
 
 bool STD140Offsets::_CheckVariable(const std::string& name) const
 {
-#if TRACY_PROFILER
-	ZoneScoped;
-#endif
-
 	bool c = move(Contains(name));
 	if (c) {
 		//SPDLOG_ERROR("Variable '{0}' already added to structure", name);
@@ -24,71 +20,42 @@ bool STD140Offsets::_CheckVariable(const std::string& name) const
 
 STD140Offsets::~STD140Offsets()
 {
-#if TRACY_PROFILER
-	ZoneScoped;
-#endif
-
 	Clear();
 }
 
 STD140Offsets::STD140Offsets(STD140Offsets& std140off)
 {
-#if TRACY_PROFILER
-	ZoneScoped;
-#endif
-
 	std140off.CloneTo(this);
 }
 
 STD140Offsets::STD140Offsets(const STD140Offsets& std140off)
 {
-#if TRACY_PROFILER
-	ZoneScoped;
-#endif
-
 	std140off.CloneTo(this);
 }
 
 STD140Offsets::STD140Offsets(STD140Offsets&& std140off)
 {
-#if TRACY_PROFILER
-	ZoneScoped;
-#endif
-
 	std140off.CloneTo(this);
 }
 
 STD140Offsets& STD140Offsets::operator=(STD140Offsets& std140off)
 {
-#if TRACY_PROFILER
-	ZoneScoped;
-#endif
-
 	std140off.CloneTo(this);
 	return *this;
 }
 
 STD140Offsets& STD140Offsets::operator=(const STD140Offsets& std140off)
 {
-#if TRACY_PROFILER
-	ZoneScoped;
-#endif
-
 	std140off.CloneTo(this);
 	return *this;
 }
 
 STD140Offsets& STD140Offsets::operator=(STD140Offsets&& std140off)
 {
-#if TRACY_PROFILER
-	ZoneScoped;
-#endif
-
 	std140off.CloneTo(this);
 	return *this;
 }
 
-#if _DEBUG
 DefineCloneFunc(glsl::STD140Offsets,
 	StandardClone(_currentOffset),
 	StandardClone(_maxAligement),
@@ -96,33 +63,14 @@ DefineCloneFunc(glsl::STD140Offsets,
 	StandardClone(_names),
 	_types, _types; for (const auto& type : _types) { cloned->_types[type.first] = type.second->Clone(); }
 )
-#else
-DefineCloneFunc(Twin2Engine::Tools::STD140Offsets,
-	StandardClone(_currentOffset),
-	StandardClone(_maxAligement),
-	StandardClone(_offsets),
-	StandardClone(_names)
-)
-#endif
 
 bool STD140Offsets::Contains(const std::string& name) const
 {
-#if TRACY_PROFILER
-	ZoneScoped;
-#endif
 	return _offsets.contains(move(_hasher(name)));
 }
 
-size_t STD140Offsets::_Add(const string& name, size_t baseAligement, size_t baseOffset
-#if _DEBUG
-	, const ValueType* type
-#endif
-	)
+size_t STD140Offsets::_Add(const string& name, size_t baseAligement, size_t baseOffset, const ValueType* type)
 {
-#if TRACY_PROFILER
-	ZoneScoped;
-#endif
-
 	size_t nameHash = move(_hasher(name));
 
 	// CALCULATE ALIGEMENT
@@ -133,9 +81,7 @@ size_t STD140Offsets::_Add(const string& name, size_t baseAligement, size_t base
 
 	_offsets[nameHash] = aligementOffset;
 	_names[nameHash] = name;
-#if _DEBUG
 	_types[nameHash] = type;
-#endif
 
 	// UPDATE SIZE
 	_currentOffset = aligementOffset + baseOffset;
@@ -147,16 +93,8 @@ size_t STD140Offsets::_Add(const string& name, size_t baseAligement, size_t base
 	return aligementOffset;
 }
 
-vector<size_t> STD140Offsets::_AddArray(const string& name, size_t arraySize, size_t baseAligement, size_t baseOffset
-#if _DEBUG
-	, const ValueType* typeTemplate
-#endif	
-	)
+vector<size_t> STD140Offsets::_AddArray(const string& name, size_t arraySize, size_t baseAligement, size_t baseOffset, const ValueType* typeTemplate)
 {
-#if TRACY_PROFILER
-	ZoneScoped;
-#endif
-
 	vector<size_t> arrayElemOffsets;
 	if (arraySize != 0) {
 		
@@ -170,7 +108,7 @@ vector<size_t> STD140Offsets::_AddArray(const string& name, size_t arraySize, si
 			_maxAligement = baseAligement;
 		}
 
-		// CALCULATE ALIGEMENT OFFSET]
+		// CALCULATE ALIGEMENT OFFSET
 		size_t aligementOffset = _currentOffset;
 		if (aligementOffset % baseAligement != 0) {
 			aligementOffset += baseAligement - (aligementOffset % baseAligement);
@@ -191,10 +129,9 @@ vector<size_t> STD140Offsets::_AddArray(const string& name, size_t arraySize, si
 
 			// SET ELEMENT VALUE NAME
 			_names[valueNameHash] = move(valueName);
-#if _DEBUG
+
 			// SET ELEMENT VALUE TYPE
 			_types[valueNameHash] = typeTemplate->Clone();
-#endif
 		}
 
 		// UPDATE SIZE
@@ -204,9 +141,7 @@ vector<size_t> STD140Offsets::_AddArray(const string& name, size_t arraySize, si
 		size_t nameHash = move(_hasher(name));
 		_offsets[nameHash] = arrayElemOffsets[0];
 		_names[nameHash] = name;
-#if _DEBUG
 		_types[nameHash] = new ArrayType(typeTemplate, arraySize);
-#endif
 	}
 
 	return arrayElemOffsets;
@@ -214,10 +149,6 @@ vector<size_t> STD140Offsets::_AddArray(const string& name, size_t arraySize, si
 
 size_t STD140Offsets::Get(const string& name) const
 {
-#if TRACY_PROFILER
-	ZoneScoped;
-#endif
-
 	size_t value = 0;
 	unordered_map<size_t, size_t>::const_iterator map_iterator = _offsets.find(move(_hasher(name)));
 	if (map_iterator != _offsets.end()) {
@@ -228,10 +159,6 @@ size_t STD140Offsets::Get(const string& name) const
 
 vector<size_t> STD140Offsets::GetArray(const string& name) const
 {
-#if TRACY_PROFILER
-	ZoneScoped;
-#endif
-
 	vector<size_t> values;
 
 	size_t i = 0;
@@ -248,13 +175,8 @@ vector<size_t> STD140Offsets::GetArray(const string& name) const
 	return values;
 }
 
-#if _DEBUG
 const ValueType* STD140Offsets::GetType(const string& name) const
 {
-#if TRACY_PROFILER
-	ZoneScoped;
-#endif
-
 	const ValueType* value = nullptr;
 	unordered_map<size_t, const ValueType*>::const_iterator map_iterator = _types.find(move(_hasher(name)));
 	if (map_iterator != _types.end()) {
@@ -263,12 +185,8 @@ const ValueType* STD140Offsets::GetType(const string& name) const
 	return value;
 }
 
-std::vector<std::string> STD140Offsets::GetNames() const
+vector<string> STD140Offsets::GetNames() const
 {
-#if TRACY_PROFILER
-	ZoneScoped;
-#endif
-
 	std::vector<std::string> names = std::vector<std::string>();
 	names.reserve(_names.size());
 
@@ -278,14 +196,9 @@ std::vector<std::string> STD140Offsets::GetNames() const
 
 	return names;
 }
-#endif
 
 size_t STD140Offsets::GetBaseAligement() const
 {
-#if TRACY_PROFILER
-	ZoneScoped;
-#endif
-
 	size_t baseAligement = _maxAligement;
 	if (_maxAligement % 16 != 0) {
 		baseAligement += 16 - (baseAligement % 16);
@@ -295,10 +208,6 @@ size_t STD140Offsets::GetBaseAligement() const
 
 size_t STD140Offsets::GetSize() const
 {
-#if TRACY_PROFILER
-	ZoneScoped;
-#endif
-
 	size_t size = _currentOffset;
 	if (size % 16 != 0) {
 		size += 16 - (size % 16);
@@ -308,21 +217,15 @@ size_t STD140Offsets::GetSize() const
 
 void STD140Offsets::Clear()
 {
-#if TRACY_PROFILER
-	ZoneScoped;
-#endif
-
 	_currentOffset = 0;
 	_maxAligement = 0;
 
 	_offsets.clear();
 	_names.clear();
-#if _DEBUG
 	for (auto& type : _types) {
 		if (type.second == nullptr) continue;
 		delete type.second;
 		type.second = nullptr;
 	}
 	_types.clear();
-#endif
 }

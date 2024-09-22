@@ -161,7 +161,7 @@ namespace glsl {
 #pragma endregion
 
 #pragma region ADD_MAT
-		template<class M, size_t size = 0, class T = M::value_type, size_t C = M::row_type::length(), size_t R = M::col_type::length()>
+		template<class M, size_t size = 0, bool column_major = true, class T = M::value_type, size_t C = M::row_type::length(), size_t R = M::col_type::length()>
 		typename extra::mat_enable_if_t<M, T, C, R, extra::type_test_t<(size == 0), size_t, std::vector<size_t>>>
 		Add(const std::string& name) {
 			if (_CheckVariable(name)) {
@@ -173,18 +173,21 @@ namespace glsl {
 				}
 			}
 
+			constexpr size_t arraySize = column_major ? C : R;
+			constexpr size_t vecSize = column_major ? R : C;
+
 			if constexpr (size == 0) {
 				if constexpr (std::is_same_v<T, bool>) {
 					// sizeof(unsigned int) = 4
-					if constexpr (extra::is_num_in_v<R, 2, 4>) {
-						size_t offset = _AddArray(name, C, 4 * R, 4 * R, new VecType(GetValueType<T>(), R))[0];
+					if constexpr (extra::is_num_in_v<vecSize, 2, 4>) {
+						size_t offset = _AddArray(name, arraySize, 4 * vecSize, 4 * vecSize, new VecType(GetValueType<T>(), vecSize))[0];
 						size_t nameHash = _hasher(name);
 						delete _types[nameHash];
 						_types[nameHash] = new MatType(GetValueType<T>(), C, R);
 						return offset;
 					}
 					else {
-						size_t offset = _AddArray(name, C, 4 * (R + 1), 4 * R, new VecType(GetValueType<T>(), R))[0];
+						size_t offset = _AddArray(name, arraySize, 4 * (vecSize + 1), 4 * vecSize, new VecType(GetValueType<T>(), vecSize))[0];
 						size_t nameHash = _hasher(name);
 						delete _types[nameHash];
 						_types[nameHash] = new MatType(GetValueType<T>(), C, R);
@@ -192,15 +195,15 @@ namespace glsl {
 					}
 				}
 				else {
-					if constexpr (extra::is_num_in_v<R, 2, 4>) {
-						size_t offset = _AddArray(name, C, sizeof(T) * R, sizeof(T) * R, new VecType(GetValueType<T>(), R))[0];
+					if constexpr (extra::is_num_in_v<vecSize, 2, 4>) {
+						size_t offset = _AddArray(name, arraySize, sizeof(T) * vecSize, sizeof(T) * vecSize, new VecType(GetValueType<T>(), vecSize))[0];
 						size_t nameHash = _hasher(name);
 						delete _types[nameHash];
 						_types[nameHash] = new MatType(GetValueType<T>(), C, R);
 						return offset;
 					}
 					else {
-						size_t offset = _AddArray(name, C, sizeof(T) * (R + 1), sizeof(T) * R, new VecType(GetValueType<T>(), R))[0];
+						size_t offset = _AddArray(name, arraySize, sizeof(T) * (vecSize + 1), sizeof(T) * vecSize, new VecType(GetValueType<T>(), vecSize))[0];
 						size_t nameHash = _hasher(name);
 						delete _types[nameHash];
 						_types[nameHash] = new MatType(GetValueType<T>(), C, R);
@@ -212,37 +215,37 @@ namespace glsl {
 				std::vector<size_t> values;
 
 				const ValueType* matType = new MatType(GetValueType<T>(), C, R);
-				const ValueType* rowType = new VecType(GetValueType<T>(), R);
+				const ValueType* rowType = new VecType(GetValueType<T>(), vecSize);
 
 				for (size_t i = 0; i < size; ++i) {
 					if constexpr (std::is_same_v<T, bool>) {
 						// sizeof(unsigned int) = 4
-						if constexpr (extra::is_num_in_v<R, 2, 4>) {
+						if constexpr (extra::is_num_in_v<vecSize, 2, 4>) {
 							std::string valueName = std::vformat(_arrayElemFormat, std::make_format_args(name, i));
-							values.push_back(std::move(_AddArray(valueName, C, 4 * R, 4 * R, rowType)[0]));
+							values.push_back(std::move(_AddArray(valueName, arraySize, 4 * vecSize, 4 * vecSize, rowType)[0]));
 							size_t nameHash = _hasher(valueName);
 							delete _types[nameHash];
 							_types[nameHash] = matType->Clone();
 						}
 						else {
 							std::string valueName = std::vformat(_arrayElemFormat, std::make_format_args(name, i));
-							values.push_back(std::move(_AddArray(valueName, C, 4 * (R + 1), 4 * R, rowType)[0]));
+							values.push_back(std::move(_AddArray(valueName, arraySize, 4 * (vecSize + 1), 4 * vecSize, rowType)[0]));
 							size_t nameHash = _hasher(valueName);
 							delete _types[nameHash];
 							_types[nameHash] = matType->Clone();
 						}
 					}
 					else {
-						if constexpr (extra::is_num_in_v<R, 2, 4>) {
+						if constexpr (extra::is_num_in_v<vecSize, 2, 4>) {
 							std::string valueName = std::vformat(_arrayElemFormat, std::make_format_args(name, i));
-							values.push_back(std::move(_AddArray(valueName, C, sizeof(T) * R, sizeof(T) * R, rowType)[0]));
+							values.push_back(std::move(_AddArray(valueName, arraySize, sizeof(T) * vecSize, sizeof(T) * vecSize, rowType)[0]));
 							size_t nameHash = _hasher(valueName);
 							delete _types[nameHash];
 							_types[nameHash] = matType->Clone();
 						}
 						else {
 							std::string valueName = std::vformat(_arrayElemFormat, std::make_format_args(name, i));
-							values.push_back(std::move(_AddArray(valueName, C, sizeof(T) * (R + 1), sizeof(T) * R, rowType)[0]));
+							values.push_back(std::move(_AddArray(valueName, arraySize, sizeof(T) * (vecSize + 1), sizeof(T) * vecSize, rowType)[0]));
 							size_t nameHash = _hasher(valueName);
 							delete _types[nameHash];
 							_types[nameHash] = matType->Clone();
