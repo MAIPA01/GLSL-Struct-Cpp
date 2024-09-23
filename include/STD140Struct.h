@@ -30,50 +30,30 @@ namespace glsl {
 		STD140Value(const std::string& name, const T& offsets, const size_t& size) : var_name(name), value(offsets), hasValue(true), array_size(size) {}
 	};*/
 
-	class STD140Struct {
+	template<class _Offsets, typename = std::enable_if_t<(std::is_base_of_v<STD140Offsets, _Offsets> || std::is_same_v<STD140Offsets, _Offsets>)>>
+	class STDStruct {
 	private:
 #pragma region CHECKS
-		template<class T> 
-		static constexpr bool type_check_v = extra::is_type_in_v<T, bool, int, unsigned int, float, double>;
-
-		template<class V, class T, size_t L>
-		static constexpr bool vec_check_v = (std::is_same_v<V, glm::vec<L, T>> && type_check_v<T> && extra::is_num_in_range_v<L, 1, 4>);
-
-		template<class M, class T, size_t C, size_t R>
-		static constexpr bool mat_check_v = (std::is_same_v<M, glm::mat<C, R, T>> && type_check_v<T> && extra::is_num_in_range_v<C, 1, 4> && extra::is_num_in_range_v<R, 1, 4>);
-
 		template<class V, class T> static constexpr bool is_vector_of_v = std::is_same_v<V, std::vector<T>>;
 		template<class V, class T, bool Test> static constexpr bool get_vector_check_v = (is_vector_of_v<V, T> && Test);
-
-		template<class T, class Ret = void> using scalar_enable_if_t = std::enable_if_t<type_check_v<T>, Ret>;
-		template<class V, class T, size_t L, class Ret = void> using vec_enable_if_t = std::enable_if_t<vec_check_v<V, T, L>, Ret>;
-		template<class M, class T, size_t C, size_t R, class Ret = void> using mat_enable_if_t = std::enable_if_t<mat_check_v<M, T, C, R>, Ret>;
-
 		template<class V, class T, bool Test, class Ret = void> using get_vector_enable_if_t = std::enable_if_t<get_vector_check_v<V, T, Test>, Ret>;
 #pragma endregion
 
-		STD140Offsets _dataOffsets;
-		std::vector<char> _data;
+		_Offsets _dataOffsets;
+		std::vector<unsigned char> _data;
 
-		template<class T> 
-		std::vector<char> _GetValueData(const T& value) const {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-			const char* valueDataPtr = reinterpret_cast<const char*>(&value);
-			return std::vector<char>(valueDataPtr, valueDataPtr + sizeof(T));
+		template<class T>
+		std::vector<unsigned char> _GetValueData(const T& value) const {
+			const char* valueDataPtr = reinterpret_cast<const unsigned char*>(&value);
+			return std::vector<unsigned char>(valueDataPtr, valueDataPtr + sizeof(T));
 		}
 
 		size_t _GetArrayElemSize(const std::vector<size_t>& offsets) const;
 
-		template<class S, class C, class T, class R>
-		R _ConvertArray(const std::string& name, const T& values, size_t size, const glsl::extra::Func<R, const std::string&, const std::vector<C>&>& arrayFunc) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-
-			if constexpr (std::is_same_v<T, std::vector<S>> && std::is_same_v<S, C>) {
-				if constexpr (std::is_void_v<R>) {
+		template<class _Start, class _Conv, class _Type, class _Ret>
+		_Ret _ConvertArray(const std::string& name, const _Type& values, size_t size, const extra::Func<_Ret, const std::string&, const std::vector<_Conv>&>& arrayFunc) {
+			if constexpr (std::is_same_v<_Type, std::vector<_Start>> && std::is_same_v<_Start, _Conv>) {
+				if constexpr (std::is_void_v<_Ret>) {
 					arrayFunc(name, values);
 				}
 				else {
@@ -81,18 +61,18 @@ namespace glsl {
 				}
 			}
 			else {
-				std::vector<C> convertedValues;
+				std::vector<_Conv> convertedValues;
 				convertedValues.reserve(size);
 				for (size_t i = 0; i < size; ++i) {
-					if constexpr (std::is_same_v<S, C>) {
+					if constexpr (std::is_same_v<_Start, _Conv>) {
 						convertedValues.insert(convertedValues.end(), values[i]);
 					}
 					else {
-						convertedValues.insert(convertedValues.end(), (C)values[i]);
+						convertedValues.insert(convertedValues.end(), (_Conv)values[i]);
 					}
 				}
 
-				if constexpr (std::is_void_v<R>) {
+				if constexpr (std::is_void_v<_Ret>) {
 					arrayFunc(name, std::move(convertedValues));
 				}
 				else {
@@ -119,18 +99,15 @@ namespace glsl {
 			}
 		}*/
 
-		template<class T> void _Add(const std::string& name, const T& value) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-
+		template<class T>
+		size_t _Add(const std::string& name, const T& value) {
 			// ADD TO OFFSETS
 			size_t valueOffset = std::move(_dataOffsets.Add<T>(name));
 
 			// CHECK ERROR
 			if (valueOffset == 0 && _data.size() != 0) {
 				//SPDLOG_ERROR("Variable '{0}' already added to structure", name);
-				return;
+				return valueOffset;
 			}
 
 			// RESERVE SIZE
@@ -142,7 +119,7 @@ namespace glsl {
 			}
 
 			// GET VALUE DATA
-			std::vector<char> valueData = std::move(_GetValueData(value));
+			std::vector<unsigned char> valueData = std::move(_GetValueData(value));
 
 			// SET VALUE DATA
 			_data.insert(_data.begin() + valueOffset, valueData.begin(), valueData.end());
@@ -154,16 +131,15 @@ namespace glsl {
 			if (_data.size() < _data.capacity()) {
 				_data.resize(_data.capacity());
 			}
+
+			return valueOffset;
 		}
 
-		template<class T> void _AddArray(const std::string& name, const std::vector<T>& values) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-
+		template<class T> 
+		std::vector<size_t> _AddArray(const std::string& name, const std::vector<T>& values) {
 			// CHECK SIZE
 			if (values.size() == 0) {
-				return;
+				return std::vector<size_t>();
 			}
 
 			// GET OFFSETS
@@ -172,14 +148,14 @@ namespace glsl {
 			// CHECK ERROR
 			if (valuesOffsets.size() == 0) {
 				//SPDLOG_ERROR("Variable '{0}' already added to structure", name);
-				return;
+				return valuesOffsets;
 			}
 
 			// RESERVE SIZE
 			_data.reserve(_dataOffsets.GetSize());
 
 			// SET VALUES DATA
-			std::vector<char> valueData;
+			std::vector<unsigned char> valueData;
 			for (size_t i = 0; i < valuesOffsets.size() && i < values.size(); ++i) {
 				// CHECK VALUE PADDING
 				if (_data.size() < valuesOffsets[i]) {
@@ -196,28 +172,24 @@ namespace glsl {
 				valueData.clear();
 			}
 
-			// CLEAR VALUES OFFSETS
-			valuesOffsets.clear();
-
 			// UPDATE SIZE
 			if (_data.size() < _data.capacity()) {
 				_data.resize(_data.capacity());
 			}
+
+			return valuesOffsets;
 		}
 
-		void _AddStruct(const std::string& name, const STD140Struct& value);
+		size_t _AddStruct(const std::string& name, const STDStruct<_Offsets>& value);
 
-		void _AddStructArray(const std::string& name, const STD140Offsets& structOffsets, const std::vector<std::vector<char>>& values);
+		std::vector<size_t> _AddStructArray(const std::string& name, const _Offsets& structOffsets, const std::vector<std::vector<unsigned char>>& values);
 
 #pragma endregion
 
 #pragma region SET
 
-		template<class T> bool _Set(const std::string& name, const T& value) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-
+		template<class T> 
+		bool _Set(const std::string& name, const T& value) {
 			// CHECK VARIABLE
 			if (!_dataOffsets.Contains(name)) {
 				//SPDLOG_ERROR("No value called '{0}' was added to this structure", name);
@@ -228,7 +200,7 @@ namespace glsl {
 			size_t valueOffset = std::move(_dataOffsets.Get(name));
 
 			// GET VALUE DATA
-			std::vector<char> valueData = std::move(_GetValueData(value));
+			std::vector<unsigned char> valueData = std::move(_GetValueData(value));
 
 			// SET VALUE DATA
 			memcpy(_data.data() + valueOffset, valueData.data(), glm::min(valueData.size(), _data.size() - valueOffset));
@@ -239,11 +211,8 @@ namespace glsl {
 			return true;
 		}
 
-		template<class T> bool _SetArray(const std::string& name, const std::vector<T>& values) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-
+		template<class T> 
+		bool _SetArray(const std::string& name, const std::vector<T>& values) {
 			// CHECK SIZE
 			if (values.size() == 0) {
 				return false;
@@ -268,13 +237,12 @@ namespace glsl {
 			size_t arrayElemDataSize = _GetArrayElemSize(valuesOffsets);
 
 			// SET VALUES DATA
-			std::vector<char> valueData;
+			std::vector<unsigned char> valueData;
 			for (size_t i = 0; i < valuesOffsets.size() && i < values.size(); ++i) {
 				// GET VALUE DATA
 				valueData = std::move(_GetValueData(values[i]));
 
 				// SET VALUE DATA
-
 				memcpy(_data.data(), valueData.data(), glm::min(glm::min(valueData.size(), arrayElemDataSize), _data.size() - valuesOffsets[i]));
 
 				// CLEAR TEMP VALUE DATA
@@ -287,19 +255,16 @@ namespace glsl {
 			return true;
 		}
 
-		bool _SetStruct(const std::string& name, const STD140Struct& value);
+		bool _SetStruct(const std::string& name, const STDStruct<_Offsets>& value);
 
-		bool _SetStructArray(const std::string& name, const STD140Offsets& structOffsets, const std::vector<std::vector<char>>& values);
+		bool _SetStructArray(const std::string& name, const _Offsets& structOffsets, const std::vector<std::vector<unsigned char>>& values);
 
 #pragma endregion
 
 #pragma region GET
 
-		template<class T> T _Get(const std::string& name) const {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-
+		template<class T> 
+		T _Get(const std::string& name) const {
 			// CHECK VARIABLE
 			if (!_dataOffsets.Contains(name)) {
 				//SPDLOG_ERROR("No value called '{0}' was added to this structure", name);
@@ -310,7 +275,7 @@ namespace glsl {
 			size_t valueOffset = _dataOffsets.Get(name);
 
 			// MAKE EMPTY VALUE DATA
-			std::vector<char> valueData;
+			std::vector<unsigned char> valueData;
 
 			// RESERVE SPACE
 			valueData.reserve(sizeof(T));
@@ -333,11 +298,8 @@ namespace glsl {
 			return value;
 		}
 
-		template<class T> std::vector<T> _GetArray(const std::string& name) const {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-
+		template<class T> 
+		std::vector<T> _GetArray(const std::string& name) const {
 			// CHECK VARIABLE
 			if (!_dataOffsets.Contains(name)) {
 				//SPDLOG_ERROR("No value called '{0}' was added to this structure", name);
@@ -358,7 +320,7 @@ namespace glsl {
 
 			// GET VALUES DATA
 			std::vector<T> values;
-			std::vector<char> valueData;
+			std::vector<unsigned char> valueData;
 			valueData.resize(sizeof(T));
 			size_t maxSize;
 			for (size_t i = 0; i < valuesOffsets.size(); ++i) {
@@ -387,24 +349,20 @@ namespace glsl {
 			return values;
 		}
 
-		STD140Struct _GetStruct(const std::string& name, const STD140Offsets& structOffsets) const;
+		STDStruct<_Offsets> _GetStruct(const std::string& name, const _Offsets& structOffsets) const;
 
-		std::vector<STD140Struct> _GetStructArray(const std::string& name, const STD140Offsets& structOffsets) const;
+		std::vector<STDStruct<_Offsets>> _GetStructArray(const std::string& name, const _Offsets& structOffsets) const;
 
-		template<class S, class C>
-		std::vector<C> _GetArray(const std::string& name, const glsl::extra::Func<std::vector<S>, const std::string&>& getArrayFunc) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-
-			if (std::is_same_v<S, C>) {
+		template<class _Start, class _Conv = _Start>
+		std::vector<_Conv> _GetArray(const std::string& name, const glsl::extra::Func<std::vector<_Start>, const std::string&>& getArrayFunc) {
+			if (std::is_same_v<_Start, _Conv>) {
 				return getArrayFunc(name);
 			}
 			else {
-				std::vector<S> values = getArrayFunc(name);
-				std::vector<C> convertedValues;
+				std::vector<_Start> values = getArrayFunc(name);
+				std::vector<_Conv> convertedValues;
 				for (auto& val : values) {
-					convertedValues.push_back((C)val);
+					convertedValues.push_back((_Conv)val);
 				}
 				return convertedValues;
 			}
@@ -412,73 +370,63 @@ namespace glsl {
 #pragma endregion
 
 	public:
-		STD140Struct() = default;
-		STD140Struct(STD140Struct& std140s);
-		STD140Struct(const STD140Struct& std140s);
-		STD140Struct(STD140Struct&& std140s);
-		STD140Struct(const STD140Offsets& structOffsets, const std::vector<char>& data = std::vector<char>());
+		STDStruct() = default;
+		STDStruct(STDStruct<_Offsets>& stdStruct);
+		STDStruct(const STDStruct<_Offsets>& stdStruct);
+		STDStruct(STDStruct<_Offsets>&& stdStruct);
+		STDStruct(const _Offsets& structOffsets, const std::vector<unsigned char>& data = std::vector<unsigned char>());
 		template<class... Args, size_t... nums>
-		STD140Struct(const STDVariable<Args, nums>&... vars) {
-			_dataOffsets = STD140Offsets(vars...);
+		STDStruct(const STDVariable<Args, nums>&... vars) {
+			_dataOffsets = _Offsets(vars...);
 			_data.resize(_dataOffsets.GetSize());
 		}
 		/*template<class... Args>
 		STD140Struct(const STD140Value<Args>&... values) {
 			_AddMultiple(values...);
 		}*/
-		virtual ~STD140Struct();
+		virtual ~STDStruct();
 
-		STD140Struct& operator=(STD140Struct& std140s);
-		STD140Struct& operator=(const STD140Struct& std140s);
-		STD140Struct& operator=(STD140Struct&& std140s);
+		STDStruct<_Offsets>& operator=(STDStruct<_Offsets>& stdStruct);
+		STDStruct<_Offsets>& operator=(const STDStruct<_Offsets>& stdStruct);
+		STDStruct<_Offsets>& operator=(STDStruct<_Offsets>&& stdStruct);
 
-		CloneFuncDeclaration(STD140Struct)
+		CloneFuncDeclaration(STDStruct<_Offsets>)
 
 #pragma region ADD_SCALARS
 		template<class T>
-		typename scalar_enable_if_t<T>
+		typename extra::scalar_enable_if_t<T, size_t>
 		Add(const std::string& name, const T& value) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
 			if constexpr (std::is_same_v<T, bool>) {
-				_Add(name, (unsigned int)value);
+				return _Add(name, (unsigned int)value);
 			}
 			else {
-				_Add(name, value);
+				return _Add(name, value);
 			}
 		}
 
 #pragma region ADD_SCALARS_ARRAYS
 		template<class T>
-		typename scalar_enable_if_t<T>
+		typename extra::scalar_enable_if_t<T, std::vector<size_t>>
 		Add(const std::string& name, const T*& values, size_t size) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-			using type = glsl::extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>;
-			_ConvertArray<T, type>(name, values, size, [&](const std::string& name, const std::vector<type>& values) -> void { _AddArray(name, values); });
+			using type = extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>;
+			return _ConvertArray<T, type>(name, values, size, 
+				[&](const std::string& name, const std::vector<type>& values) -> std::vector<size_t> { return _AddArray(name, values); });
 		}
 
 		template<class T, size_t N>
-		typename scalar_enable_if_t<T>
+		typename extra::scalar_enable_if_t<T, std::vector<size_t>>
 		Add(const std::string& name, const T(&values)[N]) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-			using type = glsl::extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>;
-			_ConvertArray<T, type>(name, values, N, [&](const std::string& name, const std::vector<type>& values) -> void { _AddArray(name, values); });
+			using type = extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>;
+			return _ConvertArray<T, type>(name, values, N, 
+				[&](const std::string& name, const std::vector<type>& values) -> std::vector<size_t> { return _AddArray(name, values); });
 		}
 
 		template<class T>
-		typename scalar_enable_if_t<T>
+		typename extra::scalar_enable_if_t<T, std::vector<size_t>>
 		Add(const std::string& name, const std::vector<T>& values) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-			using type = glsl::extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>;
-			_ConvertArray<T, type>(name, values, values.size(),
-				[&](const std::string& name, const std::vector<type>& values) -> void { _AddArray(name, values); });
+			using type = extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>;
+			return _ConvertArray<T, type>(name, values, values.size(),
+				[&](const std::string& name, const std::vector<type>& values) -> std::vector<size_t> { return _AddArray(name, values); });
 		}
 
 #pragma endregion
@@ -486,128 +434,145 @@ namespace glsl {
 
 #pragma region ADD_VEC
 		template<class V, class T = V::value_type, size_t L = V::length()>
-		typename vec_enable_if_t<V, T, L>
+		typename extra::vec_enable_if_t<V, T, L, size_t>
 		Add(const std::string& name, const V& value) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
 			if constexpr (std::is_same_v<T, bool>) {
-				using type = glm::vec<L, unsigned int>;
-				_Add(name, (type)value);
+				return _Add(name, (glm::vec<L, unsigned int>)value);
 			}
 			else {
-				_Add(name, value);
+				return _Add(name, value);
 			}
 		}
 
 #pragma region ADD_VEC_ARRAYS
 		template<class V, class T = V::value_type, size_t L = V::length()>
-		typename vec_enable_if_t<V, T, L>
+		typename extra::vec_enable_if_t<V, T, L, std::vector<size_t>>
 		Add(const std::string& name, const V*& values, size_t size) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
 			using type = glm::vec<L, extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
-			_ConvertArray<V, type>(name, values, size, 
-				[&](const std::string& name, const std::vector<type>& values) -> void { _AddArray(name, values); });
+			return _ConvertArray<V, type>(name, values, size, 
+				[&](const std::string& name, const std::vector<type>& values) -> std::vector<size_t> { return _AddArray(name, values); });
 		}
 
 		template<class V, class T = V::value_type, size_t L = V::length(), size_t N>
-		typename vec_enable_if_t<V, T, L>
+		typename extra::vec_enable_if_t<V, T, L, std::vector<size_t>>
 		Add(const std::string& name, const V(&values)[N]) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
 			using type = glm::vec<L, extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
-			_ConvertArray<V, type>(name, values, N, 
-				[&](const std::string& name, const std::vector<type>& values) -> void { _AddArray(name, values); });
+			return _ConvertArray<V, type>(name, values, N, 
+				[&](const std::string& name, const std::vector<type>& values) -> std::vector<size_t> { return _AddArray(name, values); });
 		}
 
 		template<class V, class T = V::value_type, size_t L = V::length()>
-		typename vec_enable_if_t<V, T, L>
+		typename extra::vec_enable_if_t<V, T, L, std::vector<size_t>>
 		Add(const std::string& name, const std::vector<V>& values) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
 			using type = glm::vec<L, extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
-			_ConvertArray<V, type>(name, values, values.size(),
-				[&](const std::string& name, const std::vector<type>& values) -> void { _AddArray(name, values); });
+			return _ConvertArray<V, type>(name, values, values.size(),
+				[&](const std::string& name, const std::vector<type>& values) -> std::vector<size_t> { return _AddArray(name, values); });
 		}
 
 #pragma endregion
 #pragma endregion
 
 #pragma region ADD_MAT
-		template<class M, class T = M::value_type, size_t C = M::row_type::length(), size_t R = M::col_type::length()>
-		typename mat_enable_if_t<M, T, C, R>
+		template<class M, bool column_major = true, class T = M::value_type, size_t C = M::row_type::length(), size_t R = M::col_type::length()>
+		typename extra::mat_enable_if_t<M, T, C, R, size_t>
 		Add(const std::string& name, const M& value) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-			if constexpr (std::is_same_v<T, bool>) {
-				using type = glm::mat<C, R, unsigned int>;
-				_Add(name, (type)value);
+			if constexpr (column_major) {
+				if constexpr (std::is_same_v<T, bool>) {
+					return _Add(name, (glm::mat<C, R, unsigned int>)value);
+				}
+				else {
+					return _Add(name, value);
+				}
 			}
 			else {
-				_Add(name, value);
+				if constexpr (std::is_same_v<T, bool>) {
+					return _Add(name, glm::transpose((glm::mat<C, R, unsigned int>)value));
+				}
+				else {
+					return _Add(name, glm::transpose(value));
+				}
 			}
 		}
 
 #pragma region ADD_MAT_ARRAYS
-		template<class M, class T = M::value_type, size_t C = M::row_type::length(), size_t R = M::col_type::length()>
-		typename mat_enable_if_t<M, T, C, R>
+		template<class M, bool column_major = true, class T = M::value_type, size_t C = M::row_type::length(), size_t R = M::col_type::length()>
+		typename extra::mat_enable_if_t<M, T, C, R, std::vector<size_t>>
 		Add(const std::string& name, const M*& values, size_t size) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-			using type = glm::mat<C, R, extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
-			_ConvertArray<M, type>(name, values, size, 
-				[&](const std::string& name, const std::vector<type>& values) -> void { _AddArray(name, values); });
+			if constexpr (column_major) {
+				using type = glm::mat<C, R, extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
+				return _ConvertArray<M, type>(name, values, size,
+					[&](const std::string& name, const std::vector<type>& values) -> std::vector<size_t> { return _AddArray(name, values); });
+			}
+			else {
+				std::vector<glm::mat<R, C, T>> transposedValues;
+				for (size_t i = 0; i < size; ++i) {
+					transposedValues.push_back(glm::transpose(values[i])
+				}
+
+				using type = glm::mat<R, C, extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
+				return _ConvertArray<M, type>(name, transposedValues, size,
+					[&](const std::string& name, const std::vector<type>& values) -> std::vector<size_t> { return _AddArray(name, values); });
+			}
 		}
 
-		template<class M, class T = M::value_type, size_t C = M::row_type::length(), size_t R = M::col_type::length(), size_t N>
-		typename mat_enable_if_t<M, T, C, R>
+		template<class M, bool column_major = true, class T = M::value_type, size_t C = M::row_type::length(), size_t R = M::col_type::length(), size_t N>
+		typename extra::mat_enable_if_t<M, T, C, R, std::vector<size_t>>
 		Add(const std::string& name, const M(&values)[N]) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-			using type = glm::mat<C, R, extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
-			_ConvertArray<M, type>(name, values, N, 
-				[&](const std::string& name, const std::vector<type>& values) -> void { _AddArray(name, values); });
+			if constexpr (column_major) {
+				using type = glm::mat<C, R, extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
+				return _ConvertArray<M, type>(name, values, N,
+					[&](const std::string& name, const std::vector<type>& values) -> std::vector<size_t> { return _AddArray(name, values); });
+			}
+			else {
+				std::vector<glm::mat<R, C, T>> transposedValues;
+				for (size_t i = 0; i < N; ++i) {
+					transposedValues.push_back(glm::transpose(values[i])
+				}
+
+				using type = glm::mat<R, C, extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
+				return _ConvertArray<M, type>(name, transposedValues, N,
+					[&](const std::string& name, const std::vector<type>& values) -> std::vector<size_t> { return _AddArray(name, values); });
+			}
 		}
 
-		template<class M, class T = M::value_type, size_t C = M::row_type::length(), size_t R = M::col_type::length()>
-		typename mat_enable_if_t<M, typename M::value_type, M::row_type::length(), M::column_type::length()>
+		template<class M, bool column_major = true, class T = M::value_type, size_t C = M::row_type::length(), size_t R = M::col_type::length()>
+		typename extra::mat_enable_if_t<M, T, C, R, std::vector<size_t>>
 		Add(const std::string& name, const std::vector<M>& values) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-			using type = glm::mat<C, R, extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
-			_ConvertArray<M, type>(name, values, values.size(),
-				[&](const std::string& name, const std::vector<type>& values) -> void { _AddArray(name, values); });
+			if constexpr (column_major) {
+				using type = glm::mat<C, R, extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
+				return _ConvertArray<M, type>(name, values, values.size(),
+					[&](const std::string& name, const std::vector<type>& values) -> std::vector<size_t> { return _AddArray(name, values); });
+			}
+			else {
+				std::vector<glm::mat<R, C, T>> transposedValues;
+				for (size_t i = 0; i < values.size(); ++i) {
+					transposedValues.push_back(glm::transpose(values[i])
+				}
+
+				using type = glm::mat<R, C, extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
+				return _ConvertArray<M, type>(name, transposedValues, values.size(),
+					[&](const std::string& name, const std::vector<type>& values) -> std::vector<size_t> { return _AddArray(name, values); });
+			}
 		}
 
 #pragma endregion
 #pragma endregion
 
 #pragma region ADD_STRUCT
-		void Add(const std::string& name, const STD140Struct& value);
+		size_t Add(const std::string& name, const STDStruct<_Offsets>& value);
 
 #pragma region ADD_STRUCT_ARRAYS
-		void Add(const std::string& name, const STD140Offsets& structOffsets, const std::vector<char>*& values, size_t size);
+		std::vector<size_t> Add(const std::string& name, const _Offsets& structOffsets, const std::vector<unsigned char>*& values, size_t size);
 
-		template<size_t N> void Add(const std::string& name, const STD140Offsets& structOffsets, const std::vector<char>(&values)[N]) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-			_ConvertArray<std::vector<char>, std::vector<char>>(name, values, N,
-				[&](const std::string& name, const std::vector<std::vector<char>>& convs) -> void {
-					_AddStructArray(name, structOffsets, convs);
+		template<size_t N> std::vector<size_t> Add(const std::string& name, const _Offsets& structOffsets, const std::vector<unsigned char>(&values)[N]) {
+			return _ConvertArray<std::vector<unsigned char>, std::vector<unsigned char>>(name, values, N,
+				[&](const std::string& name, const std::vector<std::vector<unsigned char>>& convs) -> std::vector<size_t> {
+					return _AddStructArray(name, structOffsets, convs);
 				}
 			);
 		}
 
-		void Add(const std::string& name, const STD140Offsets& structOffsets, const std::vector<std::vector<char>>& values);
+		std::vector<size_t> Add(const std::string& name, const _Offsets& structOffsets, const std::vector<std::vector<unsigned char>>& values);
 
 #pragma endregion
 #pragma endregion
@@ -615,11 +580,8 @@ namespace glsl {
 
 #pragma region SET_SCALARS
 		template<class T>
-		typename scalar_enable_if_t<T, bool>
+		typename extra::scalar_enable_if_t<T, bool>
 		Set(const std::string& name, const T& value) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
 			if constexpr (std::is_same_v<T, bool>) {
 				return _Set(name, (unsigned int)value);
 			}
@@ -630,34 +592,25 @@ namespace glsl {
 
 #pragma region SET_SCALARS_ARRAYS
 		template<class T>
-		typename scalar_enable_if_t<T, bool>
+		typename extra::scalar_enable_if_t<T, bool>
 		Set(const std::string& name, const T*& values, size_t size) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-			using type = glsl::extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>;
+			using type = extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>;
 			return _ConvertArray<T, type>(name, values, size, 
 				[&](const std::string& name, const std::vector<type>& values) -> bool { return _SetArray(name, values); });
 		}
 
 		template<class T, size_t N>
-		typename scalar_enable_if_t<T, bool>
+		typename extra::scalar_enable_if_t<T, bool>
 		Set(const std::string& name, const T(&values)[N]) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-			using type = glsl::extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>;
+			using type = extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>;
 			return _ConvertArray<T, type>(name, values, N, 
 				[&](const std::string& name, const std::vector<type>& values) -> bool { return _SetArray(name, values); });
 		}
 
 		template<class T>
-		typename scalar_enable_if_t<T, bool>
+		typename extra::scalar_enable_if_t<T, bool>
 		Set(const std::string& name, const std::vector<T>& values) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-			using type = glsl::extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>;
+			using type = extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>;
 			return _ConvertArray<T, type>(name, values, values.size(),
 				[&](const std::string& name, const std::vector<type>& values) -> bool { return _SetArray(name, values); });
 		}
@@ -667,14 +620,10 @@ namespace glsl {
 
 #pragma region SET_VEC
 		template<class V, class T = V::value_type, size_t L = V::length()>
-		typename vec_enable_if_t<V, T, L, bool>
+		typename extra::vec_enable_if_t<V, T, L, bool>
 		Set(const std::string& name, const V& value) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
 			if constexpr (std::is_same_v<T, bool>) {
-				using type = glm::vec<L, unsigned int>;
-				return _Set(name, (type)value);
+				return _Set(name, (glm::vec<L, unsigned int>)value);
 			}
 			else {
 				return _Set(name, value);
@@ -683,33 +632,24 @@ namespace glsl {
 
 #pragma region SET_VEC_ARRAYS
 		template<class V, class T = V::value_type, size_t L = V::length()>
-		typename vec_enable_if_t<V, T, L, bool>
+		typename extra::vec_enable_if_t<V, T, L, bool>
 		Set(const std::string& name, const V*& values, size_t size) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
 			using type = glm::vec<L, extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
 			return _ConvertArray<V, type>(name, values, size, 
 				[&](const std::string& name, const std::vector<type>& values) -> bool { return _SetArray(name, values); });
 		}
 
 		template<class V, class T = V::value_type, size_t L = V::length(), size_t N>
-		typename vec_enable_if_t<V, T, L, bool>
+		typename extra::vec_enable_if_t<V, T, L, bool>
 		Set(const std::string& name, const V(&values)[N]) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
 			using type = glm::vec<L, extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
 			return _ConvertArray<V, type>(name, values, N, 
 				[&](const std::string& name, const std::vector<type>& values) -> bool { return _SetArray(name, values); });
 		}
 
 		template<class V, class T = V::value_type, size_t L = V::length()>
-		typename vec_enable_if_t<V, T, L, bool>
+		typename extra::vec_enable_if_t<V, T, L, bool>
 		Set(const std::string& name, const std::vector<V>& values) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
 			using type = glm::vec<L, extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
 			return _ConvertArray<V, type>(name, values, values.size(),
 				[&](const std::string& name, const std::vector<type>& values) -> bool { return _SetArray(name, values); });
@@ -719,86 +659,113 @@ namespace glsl {
 #pragma endregion
 
 #pragma region SET_MAT
-		template<class M, class T = M::value_type, size_t C = M::row_type::length(), size_t R = M::col_type::length()>
-		typename mat_enable_if_t<M, T, C, R, bool>
+		template<class M, bool column_major = true, class T = M::value_type, size_t C = M::row_type::length(), size_t R = M::col_type::length()>
+		typename extra::mat_enable_if_t<M, T, C, R, bool>
 		Set(const std::string& name, const M& value) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-			if constexpr (std::is_same_v<T, bool>) {
-				using type = glm::mat<C, R, unsigned int>;
-				return _Set(name, (type)value);
+			if constexpr (column_major) {
+				if constexpr (std::is_same_v<T, bool>) {
+					return _Set(name, (glm::mat<C, R, unsigned int>)value);
+				}
+				else {
+					return _Set(name, value);
+				}
 			}
 			else {
-				return _Set(name, value);
+				if constexpr (std::is_same_v<T, bool>) {
+					return _Set(name, glm::transpose((glm::mat<C, R, unsigned int>)value));
+				}
+				else {
+					return _Set(name, glm::transpose(value));
+				}
 			}
 		}
 
 #pragma region SET_MAT_ARRAYS
-		template<class M, class T = M::value_type, size_t C = M::row_type::length(), size_t R = M::col_type::length()>
-		typename mat_enable_if_t<M, T, C, R, bool>
+		template<class M, bool column_major = true, class T = M::value_type, size_t C = M::row_type::length(), size_t R = M::col_type::length()>
+		typename extra::mat_enable_if_t<M, T, C, R, bool>
 		Set(const std::string& name, const M*& values, size_t size) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-			using type = glm::mat<C, R, extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
-			return _ConvertArray<M, type>(name, values, size, 
-				[&](const std::string& name, const std::vector<type>& values) -> bool { return _SetArray(name, values); });
+			if constexpr (column_major) {
+				using type = glm::mat<C, R, extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
+				return _ConvertArray<M, type>(name, values, size,
+					[&](const std::string& name, const std::vector<type>& values) -> bool { return _SetArray(name, values); });
+			}
+			else {
+				std::vector<glm::mat<R, C, T>> transposedValues;
+				for (size_t i = 0; i < size; ++i) {
+					transposedValues.push_back(glm::transpose(values[i]));
+				}
+
+				using type = glm::mat<R, C, extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
+				return _ConvertArray<M, type>(name, transposedValues, size,
+					[&](const std::string& name, const std::vector<type>& values) -> bool { return _SetArray(name, values); });
+			}
 		}
 
-		template<class M, class T = M::value_type, size_t C = M::row_type::length(), size_t R = M::col_type::length(), size_t N>
-		typename mat_enable_if_t<M, T, C, R, bool>
+		template<class M, bool column_major = true, class T = M::value_type, size_t C = M::row_type::length(), size_t R = M::col_type::length(), size_t N>
+		typename extra::mat_enable_if_t<M, T, C, R, bool>
 		Set(const std::string& name, const M(&values)[N]) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-			using type = glm::mat<C, R, extra::type_test_t<std::is_same<T, bool>, unsigned int, T>>;
-			return _ConvertArray<M, type>(name, values, N, 
-				[&](const std::string& name, const std::vector<type>& values) -> bool { return _SetArray(name, values); });
+			if constexpr (column_major) {
+				using type = glm::mat<C, R, extra::type_test_t<std::is_same<T, bool>, unsigned int, T>>;
+				return _ConvertArray<M, type>(name, values, N,
+					[&](const std::string& name, const std::vector<type>& values) -> bool { return _SetArray(name, values); });
+			}
+			else {
+				std::vector<glm::mat<R, C, T>> transposedValues;
+				for (size_t i = 0; i < N; ++i) {
+					transposedValues.push_back(glm::transpose(values[i]));
+				}
+
+				using type = glm::mat<R, C, extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
+				return _ConvertArray<M, type>(name, transposedValues, N,
+					[&](const std::string& name, const std::vector<type>& values) -> bool { return _SetArray(name, values); });
+			}
 		}
 
-		template<class M, class T = M::value_type, size_t C = M::row_type::length(), size_t R = M::col_type::length()>
-		typename mat_enable_if_t<M, T, C, R, bool>
+		template<class M, bool column_major = true, class T = M::value_type, size_t C = M::row_type::length(), size_t R = M::col_type::length()>
+		typename extra::mat_enable_if_t<M, T, C, R, bool>
 		Set(const std::string& name, const std::vector<M>& values) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-			using type = glm::mat<C, R, extra::type_test_t<std::is_same<T, bool>, unsigned int, T>>;
-			return _ConvertArray<M, type>(name, values, values.size(),
-				[&](const std::string& name, const std::vector<type>& values) -> bool { return _SetArray(name, values); });
+			if constexpr (column_major) {
+				using type = glm::mat<C, R, extra::type_test_t<std::is_same<T, bool>, unsigned int, T>>;
+				return _ConvertArray<M, type>(name, values, values.size(),
+					[&](const std::string& name, const std::vector<type>& values) -> bool { return _SetArray(name, values); });
+			}
+			else {
+				std::vector<glm::mat<R, C, T>> transposedValues;
+				for (size_t i = 0; i < values.size(); ++i) {
+					transposedValues.push_back(glm::transpose(values[i]));
+				}
+
+				using type = glm::mat<R, C, extra::type_test_t<std::is_same_v<T, bool>, unsigned int, T>>;
+				return _ConvertArray<M, type>(name, transposedValues, values.size(),
+					[&](const std::string& name, const std::vector<type>& values) -> bool { return _SetArray(name, values); });
+			}
 		}
 
 #pragma endregion
 #pragma endregion
 
 #pragma region SET_STRUCT
-		bool Set(const std::string& name, const STD140Struct& value);
+		bool Set(const std::string& name, const STDStruct<_Offsets>& value);
 
 #pragma region SET_STRUCT_ARRAYS
-		bool Set(const std::string& name, const STD140Offsets& structOffsets, const std::vector<char>*& values, size_t size);
+		bool Set(const std::string& name, const _Offsets& structOffsets, const std::vector<unsigned char>*& values, size_t size);
 
-		template<size_t N> bool Set(const std::string& name, const STD140Offsets& structOffsets, const std::vector<char>(&values)[N]) {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-			return _ConvertArray<std::vector<char>, std::vector<char>>(name, values, N, 
-				[&](const std::string& name, const std::vector<std::vector<char>>& values) -> bool { 
+		template<size_t N> bool Set(const std::string& name, const _Offsets& structOffsets, const std::vector<unsigned char>(&values)[N]) {
+			return _ConvertArray<std::vector<unsigned char>, std::vector<unsigned char>>(name, values, N, 
+				[&](const std::string& name, const std::vector<std::vector<unsigned char>>& values) -> bool { 
 					return _SetStructArray(name, structOffsets, values);
 				});
 		}
 
-		bool Set(const std::string& name, const STD140Offsets& structOffsets, const std::vector<std::vector<char>>& values);
+		bool Set(const std::string& name, const _Offsets& structOffsets, const std::vector<std::vector<unsigned char>>& values);
 #pragma endregion
 #pragma endregion
 
 
 #pragma region GET_SCALARS
 		template<class T>
-		typename scalar_enable_if_t<T, T>
+		typename extra::scalar_enable_if_t<T, T>
 		Get(const std::string& name) const {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
 			if constexpr (std::is_same_v<T, bool>) {
 				return (T)_Get<unsigned int>(name);
 			}
@@ -809,11 +776,8 @@ namespace glsl {
 
 #pragma region GET_SCALARS_ARRAYS
 		template<class T>
-		typename scalar_enable_if_t<T>
+		typename extra::scalar_enable_if_t<T>
 		Get(const std::string& name, T*& valuesDest, size_t size) const {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
 			std::vector<T> values;
 			if constexpr (std::is_same_v<T, bool>) {
 				values = _GetArray<unsigned int, T>(name, [&](const std::string& name) -> std::vector<T> { return _GetArray<unsigned int>(name); });
@@ -826,11 +790,8 @@ namespace glsl {
 		}
 
 		template<class V, class T = V::value_type>
-		typename get_vector_enable_if_t<V, T, type_check_v<T>, V>
+		typename get_vector_enable_if_t<V, T, extra::scalar_check_v<T>, V>
 		Get(const std::string& name) const {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
 			if constexpr (std::is_same_v<T, bool>) {
 				return _GetArray<unsigned int, T>(name, [&](const std::string& name) -> std::vector<T> { return _GetArray<unsigned int>(name); });
 			}
@@ -844,14 +805,10 @@ namespace glsl {
 
 #pragma region GET_VEC
 		template<class V, class T = V::value_type, size_t L = V::length()>
-		typename vec_enable_if_t<V, T, L, V>
+		typename extra::vec_enable_if_t<V, T, L, V>
 		Get(const std::string& name) const {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
 			if (std::is_same_v<T, bool>) {
-				using type = glm::vec<L, unsigned int>;
-				return (V)_Get<type>(name);
+				return (V)_Get<glm::vec<L, unsigned int>>(name);
 			}
 			else {
 				return _Get<V>(name);
@@ -860,11 +817,8 @@ namespace glsl {
 
 #pragma region GET_VEC_ARRAYS
 		template<class V, class T = V::value_type, size_t L = V::length()>
-		typename vec_enable_if_t<V, T, L>
+		typename extra::vec_enable_if_t<V, T, L>
 		Get(const std::string& name, V*& valuesDest, size_t size) const {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
 			std::vector<V> values;
 			if constexpr (std::is_same_v<T, bool>) {
 				using type = glm::vec<L, unsigned int>;
@@ -880,11 +834,8 @@ namespace glsl {
 		}
 
 		template<class Vec, class V = Vec::value_type, class T = V::value_type, size_t L = V::length()>
-		typename get_vector_enable_if_t<Vec, V, vec_check_v<V, T, L>, Vec>
+		typename get_vector_enable_if_t<Vec, V, extra::vec_check_v<V, T, L>, Vec>
 		Get(const std::string& name) const {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
 			if constexpr (std::is_same_v<T, bool>) {
 				using type = glm::vec<L, unsigned int>;
 				return _GetArray<type, V>(name, [&](const std::string& name) -> std::vector<type> {
@@ -900,56 +851,60 @@ namespace glsl {
 #pragma endregion
 
 #pragma region GET_MAT
-		template<class M, class T = M::value_type, size_t C = M::row_type::length(), size_t R = M::col_type::length()>
-		typename mat_enable_if_t<M, T, C, R, M>
+		template<class M, bool column_major = true, class T = M::value_type, size_t C = M::row_type::length(), size_t R = M::col_type::length()>
+		typename extra::mat_enable_if_t<M, T, C, R, M>
 		Get(const std::string& name) const {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-			if constexpr (std::is_same_v<T, bool>) {
-				using type = glm::mat<C, R, unsigned int>;
-				return (M)_Get<type>(name);
+			if constexpr (column_major) {
+				if constexpr (std::is_same_v<T, bool>) {
+					return (M)_Get<glm::mat<C, R, unsigned int>>(name);
+				}
+				else {
+					return _Get<M>(name);
+				}
 			}
 			else {
-				return _Get<M>(name);
+				if constexpr (std::is_same_v<T, bool>) {
+					return (M)glm::transpose(_Get<glm::mat<R, C, unsigned int>>(name));
+				}
+				else {
+					return glm::transpose(_Get<glm::mat<R, C, T>>(name));
+				}
 			}
 		}
 
 #pragma region GET_MAT_ARRAYS
-		template<class M, class T = M::value_type, size_t C = M::row_type::length(), size_t R = M::col_type::length()>
-		typename mat_enable_if_t<M, T, C, R>
+		template<class M, bool column_major = true, class T = M::value_type, size_t C = M::row_type::length(), size_t R = M::col_type::length()>
+		typename extra::mat_enable_if_t<M, T, C, R>
 		Get(const std::string& name, M*& valuesDest, size_t size) const {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-			std::vector<M> values;
-			if constexpr (std::is_same_v<T, bool>) {
-				using type = glm::mat<C, R, unsigned int>;
-				values = _GetArray<type, M>(name, [&](const std::string& name) -> std::vector<type> {
-						return _GetArray<type>(name); 
-					});
+			if constexpr (column_major) {
+				std::vector<M> values;
+				if constexpr (std::is_same_v<T, bool>) {
+					using type = glm::mat<C, R, unsigned int>;
+					values = _GetArray<type, M>(name, [&](const std::string& name) -> std::vector<type> {
+						return _GetArray<type>(name);
+						});
+				}
+				else {
+					values = _GetArray<M>(name);
+				}
+				memcpy(valuesDest, values.data(), glm::min(values.size(), size));
+				values.clear();
 			}
-			else {
-				values = _GetArray<M>(name);
-			}
-			memcpy(valuesDest, values.data(), glm::min(values.size(), size));
-			values.clear();
 		}
 
-		template<class Vec, class M = Vec::value_type, class T = M::value_type, size_t C = M::row_type::length(), size_t R = M::col_type::length()>
-		typename get_vector_enable_if_t<Vec, M, mat_check_v<M, T, C, R>, Vec>
+		template<class Vec, bool column_major = true, class M = Vec::value_type, class T = M::value_type, size_t C = M::row_type::length(), size_t R = M::col_type::length()>
+		typename get_vector_enable_if_t<Vec, M, extra::mat_check_v<M, T, C, R>, Vec>
 		Get(const std::string& name) const {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
-			if constexpr (std::is_same_v<T, bool>) {
-				using type = glm::mat<C, R, unsigned int>;
-				return _GetArray<type, M>(name, [&](const std::string& name) -> std::vector<type> {
-						return _GetArray<type>(name); 
-					});
-			}
-			else {
-				return _GetArray<M>(name);
+			if constexpr (column_major) {
+				if constexpr (std::is_same_v<T, bool>) {
+					using type = glm::mat<C, R, unsigned int>;
+					return _GetArray<type, M>(name, [&](const std::string& name) -> std::vector<type> {
+						return _GetArray<type>(name);
+						});
+				}
+				else {
+					return _GetArray<M>(name);
+				}
 			}
 		}
 
@@ -960,9 +915,6 @@ namespace glsl {
 		template<class S>
 		typename std::enable_if_t<std::is_same_v<S, STD140Struct>, S>
 		Get(const std::string& name, const STD140Offsets& structOffsets) const {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
 			return _GetStruct(name, structOffsets);
 		}
 
@@ -970,9 +922,6 @@ namespace glsl {
 		template<class S>
 		typename std::enable_if_t<std::is_same_v<S, STD140Struct>>
 		Get(const std::string& name, const STD140Offsets& structOffsets, STD140Struct*& valueDest, size_t size) const {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
 			std::vector<STD140Struct> values = _GetStructArray(name, structOffsets);
 			memcpy(valueDest, values.data(), glm::min(values.size(), size));
 		}
@@ -980,9 +929,6 @@ namespace glsl {
 		template<class V, class S = V::value_type>
 		typename get_vector_enable_if_t<V, S, std::is_same_v<S, STD140Struct>, V>
 		Get(const std::string& name, const STD140Offsets& structTemplate) const {
-#if TRACY_PROFILER
-			ZoneScoped;
-#endif
 			return _GetStructArray(name, structTemplate);
 		}
 
