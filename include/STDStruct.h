@@ -4,9 +4,10 @@
 #include <framework.h>
 #include <EventHandler.h>
 #include <STD140Offsets.h>
+#include <STDValue.h>
 
 namespace glsl {
-	template<class _Offsets, typename = extra::struct_enable_if_t<_Offsets>>
+	template<class _Offsets, typename = extra::offsets_enable_if_t<_Offsets>>
 	class STDStruct {
 	private:
 #pragma region CHECKS
@@ -519,6 +520,8 @@ namespace glsl {
 #pragma endregion
 
 	public:
+		using offset_type = _Offsets;
+
 		STDStruct() = default;
 		STDStruct(STDStruct<_Offsets>& stdStruct) {
 			stdStruct.CloneTo(this);

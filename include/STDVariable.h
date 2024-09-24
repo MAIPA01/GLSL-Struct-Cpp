@@ -8,21 +8,21 @@ namespace glsl {
 	class STD430Offsets;
 
 	namespace extra {
-		template<class T> static constexpr bool struct140_check_v = std::is_same_v<T, STD140Offsets>;
-		template<class T> static constexpr bool struct430_check_v = std::is_same_v<T, STD430Offsets>;
-		template<class T> static constexpr bool struct_check_v = struct140_check_v<T> || struct430_check_v<T>;
+		template<class T> static constexpr bool offsets140_check_v = std::is_same_v<T, STD140Offsets>;
+		template<class T> static constexpr bool offsets430_check_v = std::is_same_v<T, STD430Offsets>;
+		template<class T> static constexpr bool offsets_check_v = offsets140_check_v<T> || offsets430_check_v<T>;
 
-		template<class T, class Ret = void> using struct140_enable_if_t = std::enable_if_t<struct140_check_v<T>, Ret>;
-		template<class T, class Ret = void> using struct430_enable_if_t = std::enable_if_t<struct430_check_v<T>, Ret>;
-		template<class T, class Ret = void> using struct_enable_if_t = std::enable_if_t<struct_check_v<T>, Ret>;
+		template<class T, class Ret = void> using offsets140_enable_if_t = std::enable_if_t<offsets140_check_v<T>, Ret>;
+		template<class T, class Ret = void> using offsets430_enable_if_t = std::enable_if_t<offsets430_check_v<T>, Ret>;
+		template<class T, class Ret = void> using offsets_enable_if_t = std::enable_if_t<offsets_check_v<T>, Ret>;
 	}
 
 	template<class T, size_t num = 0>
 	struct STDVariable {
 	private:
 #pragma region CHECKS
-		template<class T> using struct_enable_if_t = extra::type_test_t<extra::struct_check_v<T>,
-			extra::type_test_t<extra::struct140_check_v<T>, const STD140Offsets, const STD430Offsets>,
+		template<class _Type> using offsets_var_enable_if_t = extra::type_test_t<extra::offsets_check_v<_Type>,
+			extra::type_test_t<extra::offsets140_check_v<_Type>, const STD140Offsets, const STD430Offsets>,
 			void(*)>;
 #pragma endregion
 
@@ -32,7 +32,7 @@ namespace glsl {
 
 #pragma region VARIABLES
 		const std::string var_name;
-		typename struct_enable_if_t<T> struct_offsets;
+		typename offsets_var_enable_if_t<T> struct_offsets;
 #pragma endregion
 
 #pragma region NORMAL_CONSTRUCTOR
@@ -46,11 +46,11 @@ namespace glsl {
 		STDVariable(const std::string& name) : var_name(name) {}
 #pragma endregion
 
-#pragma region STRUCT_CONSTRUCTOR
-		template<typename = extra::struct140_enable_if_t<T>>
+#pragma region OFFSETS_CONSTRUCTOR
+		template<typename = extra::offsets140_enable_if_t<T>>
 		STDVariable(const std::string& name, const STD140Offsets offsets) : var_name(name), struct_offsets(offsets) {}
 
-		template<typename = extra::struct430_enable_if_t<T>>
+		template<typename = extra::offsets430_enable_if_t<T>>
 		STDVariable(const std::string& name, const STD430Offsets offsets) : var_name(name), struct_offsets(offsets) {}
 #pragma endregion
 	};
