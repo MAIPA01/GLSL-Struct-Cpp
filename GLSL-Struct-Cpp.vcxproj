@@ -29,7 +29,6 @@
     <ClInclude Include="include\STDVariable.h" />
     <ClInclude Include="include\stringExtension.h" />
     <ClInclude Include="include\templates.h" />
-    <ClInclude Include="include\types.h" />
     <ClInclude Include="include\ValueTypes.h" />
   </ItemGroup>
   <ItemGroup>

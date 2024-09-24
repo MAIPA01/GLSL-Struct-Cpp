@@ -1,10 +1,21 @@
 #pragma once
 #include <pch.h>
 #include <framework.h>
-#include <types.h>
 #include <templates.h>
 
 namespace glsl {
+	class STD140Offsets;
+	class STD430Offsets;
+
+	namespace extra {
+		template<class T> static constexpr bool struct140_check_v = std::is_same_v<T, STD140Offsets>;
+		template<class T> static constexpr bool struct430_check_v = std::is_same_v<T, STD430Offsets>;
+		template<class T> static constexpr bool struct_check_v = struct140_check_v<T> || struct430_check_v<T>;
+
+		template<class T, class Ret = void> using struct140_enable_if_t = std::enable_if_t<struct140_check_v<T>, Ret>;
+		template<class T, class Ret = void> using struct430_enable_if_t = std::enable_if_t<struct430_check_v<T>, Ret>;
+		template<class T, class Ret = void> using struct_enable_if_t = std::enable_if_t<struct_check_v<T>, Ret>;
+	}
 
 	template<class T, size_t num = 0>
 	struct STDVariable {

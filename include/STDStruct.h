@@ -1200,4 +1200,7 @@ namespace glsl {
 			_data.clear();
 		}
 	};
+
+	using STD140Struct = STDStruct<STD140Offsets>;
+	using STD430Struct = STDStruct<STD430Offsets>;
 }
