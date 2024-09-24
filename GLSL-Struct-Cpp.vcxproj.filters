@@ -30,7 +30,7 @@
     <ClInclude Include="include\STD140Offsets.h">
       <Filter>Pliki nagłówkowe</Filter>
     </ClInclude>
-    <ClInclude Include="include\STD140Struct.h">
+    <ClInclude Include="include\STDStruct.h">
       <Filter>Pliki nagłówkowe</Filter>
     </ClInclude>
     <ClInclude Include="include\stringExtension.h">
@@ -48,6 +48,9 @@
     <ClInclude Include="include\types.h">
       <Filter>Pliki nagłówkowe</Filter>
     </ClInclude>
+    <ClInclude Include="include\STDValue.h">
+      <Filter>Pliki nagłówkowe</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\GLSL-Struct-Cpp.cpp">
@@ -57,9 +60,6 @@
       <Filter>Pliki źródłowe</Filter>
     </ClCompile>
     <ClCompile Include="src\STD140Offsets.cpp">
-      <Filter>Pliki źródłowe</Filter>
-    </ClCompile>
-    <ClCompile Include="src\STD140Struct.cpp">
       <Filter>Pliki źródłowe</Filter>
     </ClCompile>
     <ClCompile Include="src\ValueTypes.cpp">

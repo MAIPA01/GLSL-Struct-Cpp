@@ -67,7 +67,8 @@ namespace glsl::extra {
 	template<class V, class T, size_t L, class Ret = void> using vec_enable_if_t = std::enable_if_t<std::is_same_v<V, glm::vec<L, T>>&& vec_check_v<T, L>, Ret>;
 	template<class M, class T, size_t C, size_t R, class Ret = void> using mat_enable_if_t = std::enable_if_t<std::is_same_v<M, glm::mat<C, R, T>>&& mat_check_v<T, C, R>, Ret>;
 
-	template<class T> using struct140_enable_if_t = std::enable_if_t<struct140_check_v<T>>;
-	template<class T> using struct430_enable_if_t = std::enable_if_t<struct430_check_v<T>>;
+	template<class T, class Ret = void> using struct140_enable_if_t = std::enable_if_t<struct140_check_v<T>, Ret>;
+	template<class T, class Ret = void> using struct430_enable_if_t = std::enable_if_t<struct430_check_v<T>, Ret>;
+	template<class T, class Ret = void> using struct_enable_if_t = std::enable_if_t<struct_check_v<T>, Ret>;
 #pragma endregion
 }

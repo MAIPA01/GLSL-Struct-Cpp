@@ -24,7 +24,8 @@
     <ClInclude Include="include\macros.h" />
     <ClInclude Include="include\pch.h" />
     <ClInclude Include="include\STD140Offsets.h" />
-    <ClInclude Include="include\STD140Struct.h" />
+    <ClInclude Include="include\STDStruct.h" />
+    <ClInclude Include="include\STDValue.h" />
     <ClInclude Include="include\STDVariable.h" />
     <ClInclude Include="include\stringExtension.h" />
     <ClInclude Include="include\templates.h" />
@@ -40,7 +41,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="src\STD140Offsets.cpp" />
-    <ClCompile Include="src\STD140Struct.cpp" />
     <ClCompile Include="src\ValueTypes.cpp" />
   </ItemGroup>
   <ItemGroup>
