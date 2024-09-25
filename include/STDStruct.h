@@ -4,9 +4,10 @@
 #include <framework.h>
 #include <EventHandler.h>
 #include <STD140Offsets.h>
-#include <STDValue.h>
 
 namespace glsl {
+	template<class T, size_t num> struct STDValue;
+
 	template<class _Offsets, typename = extra::offsets_enable_if_t<_Offsets>>
 	class STDStruct {
 	private:
@@ -66,9 +67,14 @@ namespace glsl {
 		}
 
 #pragma region ADD
-		/*template<class T, class... Ts>
-		void _AddMultiple(const STD140Value<T>& value, const STD140Value<Ts>&... values) {
-			if constexpr (std::is_same_v<T, STD140Offsets>) {
+		template<class T, class... Ts, size_t num, size_t... nums>
+		void _AddMultiple(const STDValue<T, num>& value, const STDValue<Ts, nums>&... values) {
+			// is struct
+			// is offsets
+			// normal
+			// everything as array
+
+			if constexpr (value.is_offsets) {
 				Add(value.var_name, value.value, std::vector<char>(value.value.GetSize()));
 			}
 			else {
@@ -76,10 +82,10 @@ namespace glsl {
 			}
 
 
-			if constexpr (sizeof...(Ts) > 0) {
+			if constexpr (sizeof...(Ts) > 0 && sizeof...(nums) > 0) {
 				_AddMultiple(values...);
 			}
-		}*/
+		}
 
 		template<class T>
 		size_t _Add(const std::string& name, const T& value) {
@@ -545,10 +551,10 @@ namespace glsl {
 			_dataOffsets = _Offsets(vars...);
 			_data.resize(_dataOffsets.GetSize());
 		}
-		/*template<class... Args>
-		STD140Struct(const STD140Value<Args>&... values) {
+		template<class... Args, size_t... nums>
+		STDStruct(const STDValue<Args, nums>&... values) {
 			_AddMultiple(values...);
-		}*/
+		}
 		virtual ~STDStruct() {
 			Clear();
 		}
@@ -1207,3 +1213,5 @@ namespace glsl {
 	using STD140Struct = STDStruct<STD140Offsets>;
 	using STD430Struct = STDStruct<STD430Offsets>;
 }
+
+#include <STDValue.h>

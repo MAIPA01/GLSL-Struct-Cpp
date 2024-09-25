@@ -2,10 +2,9 @@
 #include <pch.h>
 #include <framework.h>
 #include <STDVariable.h>
+#include <STDStruct.h>
 
 namespace glsl {
-	template<class _Offsets, typename = extra::offsets_enable_if_t<_Offsets>> class STDStruct;
-
 	template<class T, size_t num = 0>
 	struct STDValue {
 	private:
@@ -17,6 +16,7 @@ namespace glsl {
 		template<class _Type, size_t C, size_t R, size_t length, class Ret = void> using mat_array_enable_if_t = std::enable_if_t<(extra::mat_check_v<_Type, C, R> && length > 0), Ret>;
 
 		template<class _Type, class _Offsets, class Ret = void> using struct_enable_if_t = std::enable_if_t<(std::is_same_v<_Type, STDStruct<_Offsets>>&& extra::offsets_check_v<_Offsets>), Ret>;
+		template<class _Type, class Ret = void> using scalar_offsets_enable_if_t = std::enable_if_t<(extra::scalar_check_v<_Type> || extra::offsets_check_v<_Type>), Ret>;
 #pragma endregion
 
 	public:
@@ -30,17 +30,33 @@ namespace glsl {
 		const bool is_struct;
 #pragma endregion
 
-#pragma region NORMAL_CONSTRUCTORS
-		template<typename = extra::scalar_enable_if_t<T>>
-		STDValue(const std::string& name) : var_name(name), value(array_var_check_t<T, num>()), is_offsets(false), is_struct(false) {
+#pragma region NORMAL_AND_OFFSETS_CONSTRUCTORS
+		template<typename = scalar_offsets_enable_if_t<T>>
+		STDValue(const std::string& name) : var_name(name), value(array_var_check_t<T, num>()), is_struct(false) {
 			if constexpr (num > 0) {
 				value.resize(num);
 			}
+
+			if constexpr (extra::scalar_check_v<T>) {
+				is_offsets = false;
+			}
+			else if constexpr (extra::offsets_check_v<T>) {
+				is_offsets = true;
+			}
 		}
 
-		template<typename = extra::scalar_enable_if_t<T>>
-		STDValue(const std::string& name, const array_var_check_t<T, num>& value) : var_name(name), value(value), is_offsets(false), is_struct(false) {}
+		template<typename = scalar_offsets_enable_if_t<T>>
+		STDValue(const std::string& name, const array_var_check_t<T, num>& value) : var_name(name), value(value), is_struct(false) {
+			if constexpr (extra::scalar_check_v<T>) {
+				is_offsets = false;
+			}
+			else if constexpr (extra::offsets_check_v<T>) {
+				is_offsets = true;
+			}
+		}
+#pragma endregion
 
+#pragma region NORMAL_CONSTRUCTORS
 		template<class VT = T::value_type, size_t L = T::length(), typename = extra::vec_enable_if_t<T, VT, L>>
 		STDValue(const std::string& name) : var_name(name), value(array_var_check_t<T, num>()), is_offsets(false), is_struct(false) {
 			if constexpr (num > 0) {
@@ -62,9 +78,9 @@ namespace glsl {
 		STDValue(const std::string& name, const array_var_check_t<T, num>& value) : var_name(name), value(value), is_offsets(false), is_struct(false) {}
 #pragma endregion
 
-#pragma region NORMAL_ARRAY_CONSTRUCTORS
-		template<typename = scalar_array_enable_if_t<T, num>>
-		STDValue(const std::string& name, const T*& values, size_t size) : var_name(name), is_offsets(false), is_struct(false) {
+#pragma region NORMAL_AND_OFFSETS_ARRAY_CONSTRUCTORS
+		template<typename = scalar_offsets_enable_if_t<T>>
+		STDValue(const std::string& name, const T*& values, size_t size) : var_name(name), is_struct(false) {
 			std::vector<T> array_values;
 			array_values.reserve(num);
 			for (size_t i = 0; i < num; ++i) {
@@ -76,18 +92,34 @@ namespace glsl {
 				}
 			}
 			value = array_values;
+
+			if constexpr (extra::scalar_check_v<T>) {
+				is_offsets = false;
+			}
+			else if constexpr (extra::offsets_check_v<T>) {
+				is_offsets = true;
+			}
 		}
 
-		template<typename = scalar_array_enable_if_t<T, num>>
-		STDValue(const std::string& name, const T(&values)[num]) : var_name(name), is_offsets(false), is_struct(false) {
+		template<typename = scalar_offsets_enable_if_t<T>>
+		STDValue(const std::string& name, const T(&values)[num]) : var_name(name), is_struct(false) {
 			std::vector<T> array_values;
 			array_values.reserve(num);
 			for (size_t i = 0; i < num; ++i) {
 				array_values.push_back(values[i]);
 			}
 			value = array_values;
-		}
 
+			if constexpr (extra::scalar_check_v<T>) {
+				is_offsets = false;
+			}
+			else if constexpr (extra::offsets_check_v<T>) {
+				is_offsets = true;
+			}
+		}
+#pragma endregion
+
+#pragma region NORMAL_ARRAY_CONSTRUCTORS
 		template<class VT = T::value_type, size_t L = T::length(), typename = vec_array_enable_if_t<VT, L, num>>
 		STDValue(const std::string& name, const T*& values, size_t size) : var_name(name), is_offsets(false), is_struct(false) {
 			std::vector<T> array_values;
@@ -139,59 +171,20 @@ namespace glsl {
 		}
 #pragma endregion
 
-#pragma region OFFSETS_CONSTRUCTORS
-		template<typename = extra::offsets_enable_if_t<T>>
-		STDValue(const std::string& name) : var_name(name), value(array_var_check_t<T, num>()), is_offsets(true), is_struct(false) {
-			if constexpr (num > 0) {
-				value.resize(num);
-			}
-		}
-
-		template<typename = extra::offsets_enable_if_t<T>>
-		STDValue(const std::string& name, const array_var_check_t<T, num>& value) : var_name(name), value(value), is_offsets(true), is_struct(false) {}
-#pragma endregion
-
-#pragma region OFFSETS_ARRAY_CONSTRUCTORS
-		template<typename = extra::offsets_enable_if_t<T>>
-		STDValue(const std::string& name, const T*& values, size_t size) : var_name(name), is_offsets(true), is_struct(false) {
-			std::vector<T> array_values;
-			array_values.reserve(num);
-			for (size_t i = 0; i < num; ++i) {
-				if (i < size) {
-					array_values.push_back(values[i]);
-				}
-				else {
-					array_values.push_back(T());
-				}
-			}
-			value = array_values;
-		}
-		
-		template<typename = extra::offsets_enable_if_t<T>>
-		STDValue(const std::string& name, const T(&values)[num]) : var_name(name), is_offsets(true), is_struct(false) {
-			std::vector<T> array_values;
-			array_values.reserve(num);
-			for (size_t i = 0; i < num; ++i) {
-				array_values.push_back(values[i]);
-			}
-			value = array_values;
-		}
-#pragma endregion
-
 #pragma region STRUCT_CONSTRUCTORS
-		template<class O = T::offsets_type, typename = struct_enable_if_t<T, O>>
+		template<class O = T::offset_type, typename = struct_enable_if_t<T, O>>
 		STDValue(const std::string& name) : var_name(name), value(array_var_check_t<T, num>()), is_offsets(false), is_struct(true) {
 			if constexpr (num > 0) {
 				value.resize(num);
 			}
 		}
 
-		template<class O = T::offsets_type, typename = struct_enable_if_t<T, O>>
+		template<class O = T::offset_type, typename = struct_enable_if_t<T, O>>
 		STDValue(const std::string& name, const array_var_check_t<T, num>& value) : var_name(name), value(value), is_offsets(false), is_struct(true) {}
 #pragma endregion
 
 #pragma region STRUCT_ARRAY_CONSTRUCTORS
-		template<class O = T::offsets_type, typename = struct_enable_if_t<T, O>>
+		template<class O = T::offset_type, typename = struct_enable_if_t<T, O>>
 		STDValue(const std::string& name, const T*& values) : var_name(name), is_offsets(false), is_struct(true) {
 			std::vector<T> array_values;
 			array_values.reserve(num);
@@ -206,7 +199,7 @@ namespace glsl {
 			value = array_values;
 		}
 
-		template<class O = T::offsets_type, typename = struct_enable_if_t<T, O>>
+		template<class O = T::offset_type, typename = struct_enable_if_t<T, O>>
 		STDValue(const std::string& name, const T(&values)[num]) : var_name(name), is_offsets(false), is_struct(true) {
 			std::vector<T> array_values;
 			array_values.reserve(num);

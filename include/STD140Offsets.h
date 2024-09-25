@@ -9,7 +9,6 @@
 #include <STDVariable.h>
 
 namespace glsl {
-
 	class STD140Offsets {
 	private:
 		size_t _currentOffset = 0;
