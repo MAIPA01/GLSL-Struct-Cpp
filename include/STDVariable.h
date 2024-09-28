@@ -22,17 +22,17 @@ namespace glsl {
 	private:
 #pragma region CHECKS
 		template<class _Type> using offsets_var_enable_if_t = extra::type_test_t<extra::offsets_check_v<_Type>,
-			extra::type_test_t<extra::offsets140_check_v<_Type>, const STD140Offsets, const STD430Offsets>,
+			extra::type_test_t<extra::offsets140_check_v<_Type>, STD140Offsets, STD430Offsets>,
 			void(*)>;
 #pragma endregion
 
 	public:
 		using var_type = T;
-		const size_t array_size = num;
+		static constexpr size_t array_size = num;
 
 #pragma region VARIABLES
 		const std::string var_name;
-		typename offsets_var_enable_if_t<T> struct_offsets;
+		const typename offsets_var_enable_if_t<T> struct_offsets;
 #pragma endregion
 
 #pragma region NORMAL_CONSTRUCTOR

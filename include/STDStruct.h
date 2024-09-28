@@ -73,12 +73,19 @@ namespace glsl {
 			// is offsets
 			// normal
 			// everything as array
-
-			if constexpr (value.is_offsets) {
-				Add(value.var_name, value.value, std::vector<char>(value.value.GetSize()));
+			if constexpr (num == 0) {
+				Add(value.var_name, value.value);
 			}
 			else {
-				Add(value.var_name, value.value);
+				if constexpr (value.is_struct) {
+					Add(value.var_name, value.struct_offsets, value.value);
+				}
+				else if constexpr (value.is_offsets) {
+					Add(value.var_name, value.value, std::vector<unsigned char>(num));
+				}
+				else {
+					Add(value.var_name, value.value);
+				}
 			}
 
 
@@ -742,7 +749,11 @@ namespace glsl {
 
 #pragma region ADD_STRUCT
 		size_t Add(const std::string& name, const STDStruct<_Offsets>& value) {
-			_AddStruct(name, value);
+			return _AddStruct(name, value);
+		}
+
+		size_t Add(const std::string& name, const _Offsets& value, const std::vector<unsigned char>& data = std::vector<unsigned char>()) {
+			return _AddStruct(name, STDStruct<_Offsets>(value, data));
 		}
 
 #pragma region ADD_STRUCT_ARRAYS

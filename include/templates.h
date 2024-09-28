@@ -22,6 +22,11 @@ namespace glsl::extra {
 	template<size_t N, size_t Min, size_t Max> constexpr bool is_num_in_range_v = is_in_range_v<N, Min, Max>;
 #pragma endregion
 	
+#pragma region IS_BASED_ON
+	template<class T, template<class...> class U> constexpr bool is_based_on_v = false;
+	template<template<class...> class U, class... Vs> constexpr bool is_based_on_v<U<Vs...>, U> = true;
+#pragma endregion
+
 #pragma region TESTS
 	template<bool Test, class Ta, class Tb> struct type_test {
 		using type = Ta;
@@ -54,12 +59,15 @@ namespace glsl::extra {
 	};
 
 #pragma region CHECKS
-	template<class T> static constexpr bool scalar_check_v = extra::is_type_in_v<T, bool, int, unsigned int, float, double>;
-	template<class T, size_t L> static constexpr bool vec_check_v = scalar_check_v<T> && extra::is_num_in_range_v<L, 2, 4>;
-	template<class T, size_t C, size_t R> static constexpr bool mat_check_v = vec_check_v<T, C>&& extra::is_num_in_range_v<R, 2, 4>;
+	template<class T> static constexpr bool scalar_check_v = is_type_in_v<T, bool, int, unsigned int, float, double>;
+	template<class T, size_t L> static constexpr bool vec_check_v = scalar_check_v<T> && is_num_in_range_v<L, 2, 4>;
+	template<class T, size_t C, size_t R> static constexpr bool mat_check_v = vec_check_v<T, C>&& is_num_in_range_v<R, 2, 4>;
+
+	template<size_t L, class T> using vec = glm::vec<L, T>;
+	template<size_t C, size_t R, class T> using mat = glm::mat<C, R, T>;
 
 	template<class T, class Ret = void> using scalar_enable_if_t = std::enable_if_t<scalar_check_v<T>, Ret>;
-	template<class V, class T, size_t L, class Ret = void> using vec_enable_if_t = std::enable_if_t<std::is_same_v<V, glm::vec<L, T>>&& vec_check_v<T, L>, Ret>;
-	template<class M, class T, size_t C, size_t R, class Ret = void> using mat_enable_if_t = std::enable_if_t<std::is_same_v<M, glm::mat<C, R, T>>&& mat_check_v<T, C, R>, Ret>;
+	template<class V, class T, size_t L, class Ret = void> using vec_enable_if_t = std::enable_if_t<is_based_on_v<V, vec> && vec_check_v<T, L>, Ret>;
+	template<class M, class T, size_t C, size_t R, class Ret = void> using mat_enable_if_t = std::enable_if_t<is_based_on_v<M, mat> && mat_check_v<T, C, R>, Ret>;
 #pragma endregion
 }
