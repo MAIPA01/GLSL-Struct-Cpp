@@ -68,11 +68,8 @@ namespace glsl {
 
 #pragma region ADD
 		template<class T, class... Ts, size_t num, size_t... nums>
+		requires(sizeof...(Ts) == sizeof...(nums))
 		void _AddMultiple(const STDValue<T, num>& value, const STDValue<Ts, nums>&... values) {
-			// is struct
-			// is offsets
-			// normal
-			// everything as array
 			if constexpr (num == 0) {
 				Add(value.var_name, value.value);
 			}
@@ -81,7 +78,7 @@ namespace glsl {
 					Add(value.var_name, value.struct_offsets, value.value);
 				}
 				else if constexpr (value.is_offsets) {
-					Add(value.var_name, value.value, std::vector<unsigned char>(num));
+					Add(value.var_name, value.value, std::vector<std::vector<unsigned char>>(num));
 				}
 				else {
 					Add(value.var_name, value.value);
@@ -554,11 +551,13 @@ namespace glsl {
 			}
 		}
 		template<class... Args, size_t... nums>
+		requires(sizeof...(Args) == sizeof...(nums))
 		STDStruct(const STDVariable<Args, nums>&... vars) {
 			_dataOffsets = _Offsets(vars...);
 			_data.resize(_dataOffsets.GetSize());
 		}
 		template<class... Args, size_t... nums>
+		requires(sizeof...(Args) == sizeof...(nums))
 		STDStruct(const STDValue<Args, nums>&... values) {
 			_AddMultiple(values...);
 		}
