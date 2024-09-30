@@ -26,6 +26,7 @@ namespace glsl {
 		bool _CheckVariable(const std::string& name) const;
 
 		template<class T, class... Ts, size_t num, size_t... nums>
+		requires(sizeof...(Ts) == sizeof...(nums))
 		std::enable_if_t<!std::is_same_v<T, STD430Offsets>>
 		_AddMultiple(const STDVariable<T, num>& var, const STDVariable<Ts, nums>&... vars) {
 			if constexpr (std::is_same_v<T, STD140Offsets>) {
@@ -58,6 +59,7 @@ namespace glsl {
 		STD140Offsets(const STD140Offsets& std140off);
 		STD140Offsets(STD140Offsets&& std140off);
 		template<class... Args, size_t... nums>
+		requires(sizeof...(Args) == sizeof...(nums))
 		STD140Offsets(const STDVariable<Args, nums>&... vars) {
 			_AddMultiple(vars...);
 		}
@@ -72,216 +74,264 @@ namespace glsl {
 		bool Contains(const std::string& name) const;
 
 #pragma region ADD_SCALAR
-		template<class T, size_t size = 0>
-		typename extra::scalar_enable_if_t<T, extra::type_test_t<(size == 0), size_t, std::vector<size_t>>>
+		template<class T>
+		typename extra::scalar_enable_if_t<T, size_t>
 		Add(const std::string& name) {
 			if (_CheckVariable(name)) {
-				if constexpr (size == 0) {
-					return 0;
-				}
-				else {
-					return std::vector<size_t>();
-				}
+				return 0;
 			}
 
-			if constexpr (size == 0) {
-				if constexpr (std::is_same_v<T, bool>) {
-					// sizeof(unsigned int) = 4
-					return _Add(name, 4, 4, new ScalarType(GetValueType<T>()));
-				}
-				else {
-					return _Add(name, sizeof(T), sizeof(T), new ScalarType(GetValueType<T>()));
-				}
+			if constexpr (std::is_same_v<T, bool>) {
+				// sizeof(unsigned int) = 4
+				return _Add(name, 4, 4, new ScalarType(GetValueType<T>()));
 			}
 			else {
-				if constexpr (std::is_same_v<T, bool>) {
-					// sizeof(unsigned int) = 4
-					return _AddArray(name, size, 4, 4, new ScalarType(GetValueType<T>()));
-				}
-				else {
-					return _AddArray(name, size, sizeof(T), sizeof(T), new ScalarType(GetValueType<T>()));
-				}
+				return _Add(name, sizeof(T), sizeof(T), new ScalarType(GetValueType<T>()));
+			}
+		}
+
+		template<class T>
+		typename extra::scalar_enable_if_t<T, std::vector<size_t>>
+		Add(const std::string& name, size_t size) {
+			if (size == 0) {
+				return std::vector<size_t>();
+			}
+
+			if (_CheckVariable(name)) {
+				return std::vector<size_t>();
+			}
+
+			if constexpr (std::is_same_v<T, bool>) {
+				// sizeof(unsigned int) = 4
+				return _AddArray(name, size, 4, 4, new ScalarType(GetValueType<T>()));
+			}
+			else {
+				return _AddArray(name, size, sizeof(T), sizeof(T), new ScalarType(GetValueType<T>()));
 			}
 		}
 #pragma endregion
 
 #pragma region ADD_VEC
-		template<class V, size_t size = 0, class T = V::value_type, size_t L = V::length()>
-		typename extra::vec_enable_if_t<V, T, L, extra::type_test_t<(size == 0), size_t, std::vector<size_t>>>
+		template<class V, class T = V::value_type, size_t L = V::length()>
+		typename extra::vec_enable_if_t<V, T, L, size_t>
 		Add(const std::string& name) {
 			if (_CheckVariable(name)) {
-				if constexpr (size == 0) {
-					return 0;
-				}
-				else {
-					return std::vector<size_t>();
-				}
+				return 0;
 			}
 
-			if constexpr (size == 0) {
-				if constexpr (std::is_same_v<T, bool>) {
-					// sizeof(unsigned int) = 4
-					if constexpr (extra::is_num_in_v<L, 2, 4>) {
-						return _Add(name, 4 * L, 4 * L, new VecType(GetValueType<T>(), L));
-					}
-					else {
-						return _Add(name, 4 * (L + 1), 4 * L, new VecType(GetValueType<T>(), L));
-					}
+			if constexpr (std::is_same_v<T, bool>) {
+				// sizeof(unsigned int) = 4
+				if constexpr (extra::is_num_in_v<L, 2, 4>) {
+					return _Add(name, 4 * L, 4 * L, new VecType(GetValueType<T>(), L));
 				}
 				else {
-					if constexpr (extra::is_num_in_v<L, 2, 4>) {
-						return _Add(name, sizeof(T) * L, sizeof(T) * L, new VecType(GetValueType<T>(), L));
-					}
-					else {
-						return _Add(name, sizeof(T) * (L + 1), sizeof(T) * L, new VecType(GetValueType<T>(), L));
-					}
+					return _Add(name, 4 * (L + 1), 4 * L, new VecType(GetValueType<T>(), L));
 				}
 			}
 			else {
-				if constexpr (std::is_same_v<T, bool>) {
-					// sizeof(unsigned int) = 4
-					if constexpr (extra::is_num_in_v<L, 1, 2, 4>) {
-						return _AddArray(name, size, 4 * L, 4 * L, new VecType(GetValueType<T>(), L));
-					}
-					else {
-						return _AddArray(name, size, 4 * (L + 1), 4 * L, new VecType(GetValueType<T>(), L));
-					}
+				if constexpr (extra::is_num_in_v<L, 2, 4>) {
+					return _Add(name, sizeof(T) * L, sizeof(T) * L, new VecType(GetValueType<T>(), L));
 				}
 				else {
-					if constexpr (extra::is_num_in_v<L, 2, 4>) {
-						return _AddArray(name, size, sizeof(T) * L, sizeof(T) * L, new VecType(GetValueType<T>(), L));
-					}
-					else {
-						return _AddArray(name, size, sizeof(T) * (L + 1), sizeof(T) * L, new VecType(GetValueType<T>(), L));
-					}
+					return _Add(name, sizeof(T) * (L + 1), sizeof(T) * L, new VecType(GetValueType<T>(), L));
+				}
+			}
+		}
+
+		template<class V, class T = V::value_type, size_t L = V::length()>
+		typename extra::vec_enable_if_t<V, T, L, std::vector<size_t>>
+		Add(const std::string& name, size_t size) {
+			if (size == 0) {
+				return std::vector<size_t>();
+			}
+
+			if (_CheckVariable(name)) {
+				return std::vector<size_t>();
+			}
+
+			if constexpr (std::is_same_v<T, bool>) {
+				// sizeof(unsigned int) = 4
+				if constexpr (extra::is_num_in_v<L, 2, 4>) {
+					return _AddArray(name, size, 4 * L, 4 * L, new VecType(GetValueType<T>(), L));
+				}
+				else {
+					return _AddArray(name, size, 4 * (L + 1), 4 * L, new VecType(GetValueType<T>(), L));
+				}
+			}
+			else {
+				if constexpr (extra::is_num_in_v<L, 2, 4>) {
+					return _AddArray(name, size, sizeof(T) * L, sizeof(T) * L, new VecType(GetValueType<T>(), L));
+				}
+				else {
+					return _AddArray(name, size, sizeof(T) * (L + 1), sizeof(T) * L, new VecType(GetValueType<T>(), L));
 				}
 			}
 		}
 #pragma endregion
 
 #pragma region ADD_MAT
-		template<class M, size_t size = 0, bool column_major = true, class T = M::value_type, size_t C = M::row_type::length(), size_t R = M::col_type::length()>
-		typename extra::mat_enable_if_t<M, T, C, R, extra::type_test_t<(size == 0), size_t, std::vector<size_t>>>
+		template<class M, bool column_major = true, class T = M::value_type, size_t C = M::row_type::length(), size_t R = M::col_type::length()>
+		typename extra::mat_enable_if_t<M, T, C, R, size_t>
 		Add(const std::string& name) {
 			if (_CheckVariable(name)) {
-				if constexpr (size == 0) {
-					return 0;
-				}
-				else {
-					return std::vector<size_t>();
-				}
+				return 0;
 			}
 
 			constexpr size_t arraySize = column_major ? C : R;
 			constexpr size_t vecSize = column_major ? R : C;
 
-			if constexpr (size == 0) {
-				if constexpr (std::is_same_v<T, bool>) {
-					// sizeof(unsigned int) = 4
-					if constexpr (extra::is_num_in_v<vecSize, 2, 4>) {
-						size_t offset = _AddArray(name, arraySize, 4 * vecSize, 4 * vecSize, new VecType(GetValueType<T>(), vecSize))[0];
-						size_t nameHash = _hasher(name);
-						delete _types[nameHash];
-						_types[nameHash] = new MatType(GetValueType<T>(), C, R);
-						return offset;
-					}
-					else {
-						size_t offset = _AddArray(name, arraySize, 4 * (vecSize + 1), 4 * vecSize, new VecType(GetValueType<T>(), vecSize))[0];
-						size_t nameHash = _hasher(name);
-						delete _types[nameHash];
-						_types[nameHash] = new MatType(GetValueType<T>(), C, R);
-						return offset;
-					}
+			if constexpr (std::is_same_v<T, bool>) {
+				// sizeof(unsigned int) = 4
+				if constexpr (extra::is_num_in_v<vecSize, 2, 4>) {
+					size_t offset = _AddArray(name, arraySize, 4 * vecSize, 4 * vecSize, new VecType(GetValueType<T>(), vecSize))[0];
+					size_t nameHash = _hasher(name);
+					delete _types[nameHash];
+					_types[nameHash] = new MatType(GetValueType<T>(), C, R);
+					return offset;
 				}
 				else {
-					if constexpr (extra::is_num_in_v<vecSize, 2, 4>) {
-						size_t offset = _AddArray(name, arraySize, sizeof(T) * vecSize, sizeof(T) * vecSize, new VecType(GetValueType<T>(), vecSize))[0];
-						size_t nameHash = _hasher(name);
-						delete _types[nameHash];
-						_types[nameHash] = new MatType(GetValueType<T>(), C, R);
-						return offset;
-					}
-					else {
-						size_t offset = _AddArray(name, arraySize, sizeof(T) * (vecSize + 1), sizeof(T) * vecSize, new VecType(GetValueType<T>(), vecSize))[0];
-						size_t nameHash = _hasher(name);
-						delete _types[nameHash];
-						_types[nameHash] = new MatType(GetValueType<T>(), C, R);
-						return offset;
-					}
+					size_t offset = _AddArray(name, arraySize, 4 * (vecSize + 1), 4 * vecSize, new VecType(GetValueType<T>(), vecSize))[0];
+					size_t nameHash = _hasher(name);
+					delete _types[nameHash];
+					_types[nameHash] = new MatType(GetValueType<T>(), C, R);
+					return offset;
 				}
 			}
 			else {
-				std::vector<size_t> values;
-
-				const ValueType* matType = new MatType(GetValueType<T>(), C, R);
-				const ValueType* rowType = new VecType(GetValueType<T>(), vecSize);
-
-				for (size_t i = 0; i < size; ++i) {
-					if constexpr (std::is_same_v<T, bool>) {
-						// sizeof(unsigned int) = 4
-						if constexpr (extra::is_num_in_v<vecSize, 2, 4>) {
-							std::string valueName = std::vformat(_arrayElemFormat, std::make_format_args(name, i));
-							values.push_back(std::move(_AddArray(valueName, arraySize, 4 * vecSize, 4 * vecSize, rowType)[0]));
-							size_t nameHash = _hasher(valueName);
-							delete _types[nameHash];
-							_types[nameHash] = matType->Clone();
-						}
-						else {
-							std::string valueName = std::vformat(_arrayElemFormat, std::make_format_args(name, i));
-							values.push_back(std::move(_AddArray(valueName, arraySize, 4 * (vecSize + 1), 4 * vecSize, rowType)[0]));
-							size_t nameHash = _hasher(valueName);
-							delete _types[nameHash];
-							_types[nameHash] = matType->Clone();
-						}
-					}
-					else {
-						if constexpr (extra::is_num_in_v<vecSize, 2, 4>) {
-							std::string valueName = std::vformat(_arrayElemFormat, std::make_format_args(name, i));
-							values.push_back(std::move(_AddArray(valueName, arraySize, sizeof(T) * vecSize, sizeof(T) * vecSize, rowType)[0]));
-							size_t nameHash = _hasher(valueName);
-							delete _types[nameHash];
-							_types[nameHash] = matType->Clone();
-						}
-						else {
-							std::string valueName = std::vformat(_arrayElemFormat, std::make_format_args(name, i));
-							values.push_back(std::move(_AddArray(valueName, arraySize, sizeof(T) * (vecSize + 1), sizeof(T) * vecSize, rowType)[0]));
-							size_t nameHash = _hasher(valueName);
-							delete _types[nameHash];
-							_types[nameHash] = matType->Clone();
-						}
-					}
+				if constexpr (extra::is_num_in_v<vecSize, 2, 4>) {
+					size_t offset = _AddArray(name, arraySize, sizeof(T) * vecSize, sizeof(T) * vecSize, new VecType(GetValueType<T>(), vecSize))[0];
+					size_t nameHash = _hasher(name);
+					delete _types[nameHash];
+					_types[nameHash] = new MatType(GetValueType<T>(), C, R);
+					return offset;
 				}
-
-				// SET ARRAY BEGIN POINTER
-				size_t nameHash = std::move(_hasher(name));
-				_offsets[nameHash] = values[0];
-				_names[nameHash] = name;
-				_types[nameHash] = new ArrayType(matType, size);
-				return values;
+				else {
+					size_t offset = _AddArray(name, arraySize, sizeof(T) * (vecSize + 1), sizeof(T) * vecSize, new VecType(GetValueType<T>(), vecSize))[0];
+					size_t nameHash = _hasher(name);
+					delete _types[nameHash];
+					_types[nameHash] = new MatType(GetValueType<T>(), C, R);
+					return offset;
+				}
 			}
 		}
 
-#pragma endregion
+		template<class M, bool column_major = true, class T = M::value_type, size_t C = M::row_type::length(), size_t R = M::col_type::length()>
+		typename extra::mat_enable_if_t<M, T, C, R, std::vector<size_t>>
+		Add(const std::string& name, size_t size) {
+			if (size == 0) {
+				return std::vector<size_t>();
+			}
 
-#pragma region ADD_STRUCT
-		template<size_t size = 0>
-		typename extra::type_test_t<(size == 0), size_t, std::vector<size_t>>
-		Add(const std::string& name, const STD140Offsets& structTemplate) {			
 			if (_CheckVariable(name)) {
-				if constexpr (size == 0) {
-					return 0;
+				return std::vector<size_t>();
+			}
+
+			constexpr size_t arraySize = column_major ? C : R;
+			constexpr size_t vecSize = column_major ? R : C;
+
+			std::vector<size_t> values;
+
+			const ValueType* matType = new MatType(GetValueType<T>(), C, R);
+			const ValueType* rowType = new VecType(GetValueType<T>(), vecSize);
+
+			for (size_t i = 0; i < size; ++i) {
+				if constexpr (std::is_same_v<T, bool>) {
+					// sizeof(unsigned int) = 4
+					if constexpr (extra::is_num_in_v<vecSize, 2, 4>) {
+						std::string valueName = std::vformat(_arrayElemFormat, std::make_format_args(name, i));
+						values.push_back(std::move(_AddArray(valueName, arraySize, 4 * vecSize, 4 * vecSize, rowType)[0]));
+						size_t nameHash = _hasher(valueName);
+						delete _types[nameHash];
+						_types[nameHash] = matType->Clone();
+					}
+					else {
+						std::string valueName = std::vformat(_arrayElemFormat, std::make_format_args(name, i));
+						values.push_back(std::move(_AddArray(valueName, arraySize, 4 * (vecSize + 1), 4 * vecSize, rowType)[0]));
+						size_t nameHash = _hasher(valueName);
+						delete _types[nameHash];
+						_types[nameHash] = matType->Clone();
+					}
 				}
 				else {
-					return std::vector<size_t>();
+					if constexpr (extra::is_num_in_v<vecSize, 2, 4>) {
+						std::string valueName = std::vformat(_arrayElemFormat, std::make_format_args(name, i));
+						values.push_back(std::move(_AddArray(valueName, arraySize, sizeof(T) * vecSize, sizeof(T) * vecSize, rowType)[0]));
+						size_t nameHash = _hasher(valueName);
+						delete _types[nameHash];
+						_types[nameHash] = matType->Clone();
+					}
+					else {
+						std::string valueName = std::vformat(_arrayElemFormat, std::make_format_args(name, i));
+						values.push_back(std::move(_AddArray(valueName, arraySize, sizeof(T) * (vecSize + 1), sizeof(T) * vecSize, rowType)[0]));
+						size_t nameHash = _hasher(valueName);
+						delete _types[nameHash];
+						_types[nameHash] = matType->Clone();
+					}
 				}
 			}
 
-			if constexpr (size == 0) {
-				size_t aligementOffset = std::move(_Add(name, structTemplate.GetBaseAligement(), structTemplate._currentOffset, new StructType(structTemplate)));
-				std::string valueName;
-				size_t nameHash;
+			// SET ARRAY BEGIN POINTER
+			size_t nameHash = std::move(_hasher(name));
+			_offsets[nameHash] = values[0];
+			_names[nameHash] = name;
+			_types[nameHash] = new ArrayType(matType, size);
+
+			// CLEAR
+			delete matType;
+			delete rowType;
+
+			return values;
+		}
+#pragma endregion
+
+#pragma region ADD_STRUCT
+		size_t Add(const std::string& name, const STD140Offsets& structTemplate) {
+			if (_CheckVariable(name)) {
+				return 0;
+			}
+
+			size_t aligementOffset = std::move(_Add(name, structTemplate.GetBaseAligement(), structTemplate._currentOffset, new StructType(structTemplate)));
+			std::string valueName;
+			size_t nameHash;
+			for (const auto& off : structTemplate._offsets) {
+				valueName = std::move(std::vformat(_subElemFormat, std::make_format_args(name, (*structTemplate._names.find(off.first)).second)));
+
+				nameHash = std::move(_hasher(valueName));
+				_offsets[nameHash] = aligementOffset + off.second;
+				_names[nameHash] = valueName;
+				_types[nameHash] = (*structTemplate._types.find(off.first)).second->Clone();
+			}
+
+			// ADD PADDING
+			if (_currentOffset % 16 != 0) {
+				_currentOffset += 16 - (_currentOffset % 16);
+			}
+			return aligementOffset;
+		}
+
+		std::vector<size_t> Add(const std::string& name, const STD140Offsets& structTemplate, size_t size) {
+			if (size == 0) {
+				return std::vector<size_t>();
+			}
+			
+			if (_CheckVariable(name)) {
+				return std::vector<size_t>();
+			}
+
+			std::vector<size_t> values;
+			std::string arrayElemName;
+			size_t aligementOffset;
+			std::string valueName;
+			size_t nameHash;
+
+			const ValueType* structType = new StructType(structTemplate);
+
+			for (size_t i = 0; i < size; ++i) {
+				arrayElemName = std::move(std::vformat(_arrayElemFormat, std::make_format_args(name, i)));
+				values.push_back((aligementOffset = std::move(_Add(arrayElemName, structTemplate.GetBaseAligement(), structTemplate._currentOffset, structType->Clone()))));
+
 				for (const auto& off : structTemplate._offsets) {
-					valueName = std::move(std::vformat(_subElemFormat, std::make_format_args(name, (*structTemplate._names.find(off.first)).second)));
+					valueName = std::move(std::vformat(_subElemFormat, std::make_format_args(arrayElemName, (*structTemplate._names.find(off.first)).second)));
 
 					nameHash = std::move(_hasher(valueName));
 					_offsets[nameHash] = aligementOffset + off.second;
@@ -293,43 +343,14 @@ namespace glsl {
 				if (_currentOffset % 16 != 0) {
 					_currentOffset += 16 - (_currentOffset % 16);
 				}
-				return aligementOffset;
 			}
-			else {
-				std::vector<size_t> values;
-				std::string arrayElemName;
-				size_t aligementOffset;
-				std::string valueName;
-				size_t nameHash;
 
-				const ValueType* structType = new StructType(structTemplate);
-
-				for (size_t i = 0; i < size; ++i) {
-					arrayElemName = std::move(std::vformat(_arrayElemFormat, std::make_format_args(name, i)));
-					values.push_back((aligementOffset = std::move(_Add(arrayElemName, structTemplate.GetBaseAligement(), structTemplate._currentOffset, structType->Clone()))));
-
-					for (const auto& off : structTemplate._offsets) {
-						valueName = std::move(std::vformat(_subElemFormat, std::make_format_args(arrayElemName, (*structTemplate._names.find(off.first)).second)));
-
-						nameHash = std::move(_hasher(valueName));
-						_offsets[nameHash] = aligementOffset + off.second;
-						_names[nameHash] = valueName;
-						_types[nameHash] = (*structTemplate._types.find(off.first)).second->Clone();
-					}
-
-					// ADD PADDING
-					if (_currentOffset % 16 != 0) {
-						_currentOffset += 16 - (_currentOffset % 16);
-					}
-				}
-
-				// SET ARRAY BEGIN POINTER
-				nameHash = std::move(_hasher(name));
-				_offsets[nameHash] = values[0];
-				_names[nameHash] = name;
-				_types[nameHash] = new ArrayType(structType, size);
-				return values;
-			}
+			// SET ARRAY BEGIN POINTER
+			nameHash = std::move(_hasher(name));
+			_offsets[nameHash] = values[0];
+			_names[nameHash] = name;
+			_types[nameHash] = new ArrayType(structType, size);
+			return values;
 		}
 #pragma endregion
 
