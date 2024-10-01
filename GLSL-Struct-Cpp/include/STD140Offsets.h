@@ -101,13 +101,19 @@ namespace glsl {
 				return std::vector<size_t>();
 			}
 
+			const ValueType* type = new ScalarType(GetValueType<T>());
+			std::vector<size_t> ret;
+
 			if constexpr (std::is_same_v<T, bool>) {
 				// sizeof(unsigned int) = 4
-				return _AddArray(name, size, 4, 4, new ScalarType(GetValueType<T>()));
+				ret = _AddArray(name, size, 4, 4, type);
 			}
 			else {
-				return _AddArray(name, size, sizeof(T), sizeof(T), new ScalarType(GetValueType<T>()));
+				ret = _AddArray(name, size, sizeof(T), sizeof(T), type);
 			}
+
+			delete type;
+			return ret;
 		}
 #pragma endregion
 
@@ -149,23 +155,29 @@ namespace glsl {
 				return std::vector<size_t>();
 			}
 
+			const ValueType* type = new VecType(GetValueType<T>(), L);
+			std::vector<size_t> ret;
+
 			if constexpr (std::is_same_v<T, bool>) {
 				// sizeof(unsigned int) = 4
 				if constexpr (extra::is_num_in_v<L, 2, 4>) {
-					return _AddArray(name, size, 4 * L, 4 * L, new VecType(GetValueType<T>(), L));
+					ret = _AddArray(name, size, 4 * L, 4 * L, type);
 				}
 				else {
-					return _AddArray(name, size, 4 * (L + 1), 4 * L, new VecType(GetValueType<T>(), L));
+					ret = _AddArray(name, size, 4 * (L + 1), 4 * L, type);
 				}
 			}
 			else {
 				if constexpr (extra::is_num_in_v<L, 2, 4>) {
-					return _AddArray(name, size, sizeof(T) * L, sizeof(T) * L, new VecType(GetValueType<T>(), L));
+					ret = _AddArray(name, size, sizeof(T) * L, sizeof(T) * L, type);
 				}
 				else {
-					return _AddArray(name, size, sizeof(T) * (L + 1), sizeof(T) * L, new VecType(GetValueType<T>(), L));
+					ret = _AddArray(name, size, sizeof(T) * (L + 1), sizeof(T) * L, type);
 				}
 			}
+
+			delete type;
+			return ret;
 		}
 #pragma endregion
 
@@ -277,7 +289,7 @@ namespace glsl {
 			_types[nameHash] = new ArrayType(matType, size);
 
 			// CLEAR
-			delete matType;
+			// matType in ArrayType (Don't clear)
 			delete rowType;
 
 			return values;

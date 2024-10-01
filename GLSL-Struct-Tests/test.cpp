@@ -429,20 +429,20 @@ TEST(STD140Offsets, AddMarixesArray) {
 	EXPECT_EQ(ret, results);
 
 	// UINT
-	results[0] = 112;
-	results[1] = 144;
+	results[0] = 128;
+	results[1] = 160;
 	ret = structOffsets.Add<umat2>("Uint", 2);
 	EXPECT_EQ(ret, results);
 
 	// FLOAT
-	results[0] = 176;
-	results[1] = 208;
+	results[0] = 192;
+	results[1] = 224;
 	ret = structOffsets.Add<fmat2>("Float", 2);
 	EXPECT_EQ(ret, results);
 
 	// DOUBLE
-	results[0] = 240;
-	results[1] = 272;
+	results[0] = 256;
+	results[1] = 288;
 	ret = structOffsets.Add<dmat2>("Double", 2);
 	EXPECT_EQ(ret, results);
 #pragma endregion
@@ -457,26 +457,26 @@ TEST(STD140Offsets, AddMarixesArray) {
 	EXPECT_EQ(ret, results);
 
 	// INT
-	results[0] = 0;
-	results[1] = 32;
+	results[0] = 64;
+	results[1] = 96;
 	ret = structOffsets.Add<imat2x3>("Int", 2);
 	EXPECT_EQ(ret, results);
 
 	// UINT
-	results[0] = 0;
-	results[1] = 32;
+	results[0] = 128;
+	results[1] = 160;
 	ret = structOffsets.Add<umat2x3>("Uint", 2);
 	EXPECT_EQ(ret, results);
 
 	// FLOAT
-	results[0] = 0;
-	results[1] = 32;
+	results[0] = 192;
+	results[1] = 224;
 	ret = structOffsets.Add<fmat2x3>("Float", 2);
 	EXPECT_EQ(ret, results);
 
 	// DOUBLE
-	results[0] = 0;
-	results[1] = 32;
+	results[0] = 256;
+	results[1] = 320;
 	ret = structOffsets.Add<dmat2x3>("Double", 2);
 	EXPECT_EQ(ret, results);
 #pragma endregion
@@ -491,26 +491,26 @@ TEST(STD140Offsets, AddMarixesArray) {
 	EXPECT_EQ(ret, results);
 
 	// INT
-	results[0] = 0;
-	results[1] = 32;
+	results[0] = 64;
+	results[1] = 96;
 	ret = structOffsets.Add<imat2x4>("Int", 2);
 	EXPECT_EQ(ret, results);
 
 	// UINT
-	results[0] = 0;
-	results[1] = 32;
+	results[0] = 128;
+	results[1] = 160;
 	ret = structOffsets.Add<umat2x4>("Uint", 2);
 	EXPECT_EQ(ret, results);
 
 	// FLOAT
-	results[0] = 0;
-	results[1] = 32;
+	results[0] = 192;
+	results[1] = 224;
 	ret = structOffsets.Add<fmat2x4>("Float", 2);
 	EXPECT_EQ(ret, results);
 
 	// DOUBLE
-	results[0] = 0;
-	results[1] = 32;
+	results[0] = 256;
+	results[1] = 320;
 	ret = structOffsets.Add<dmat2x4>("Double", 2);
 	EXPECT_EQ(ret, results);
 #pragma endregion
@@ -529,26 +529,26 @@ TEST(STD140Offsets, AddMarixesArray) {
 	EXPECT_EQ(ret, results);
 
 	// INT
-	results[0] = 0;
-	results[1] = 32;
+	results[0] = 64;
+	results[1] = 96;
 	ret = structOffsets.Add<imat2, false>("Int", 2);
 	EXPECT_EQ(ret, results);
 
 	// UINT
-	results[0] = 0;
-	results[1] = 32;
+	results[0] = 128;
+	results[1] = 160;
 	ret = structOffsets.Add<umat2, false>("Uint", 2);
 	EXPECT_EQ(ret, results);
 
 	// FLOAT
-	results[0] = 0;
-	results[1] = 32;
+	results[0] = 192;
+	results[1] = 224;
 	ret = structOffsets.Add<fmat2, false>("Float", 2);
 	EXPECT_EQ(ret, results);
 
 	// DOUBLE
-	results[0] = 0;
-	results[1] = 32;
+	results[0] = 256;
+	results[1] = 288;
 	ret = structOffsets.Add<dmat2, false>("Double", 2);
 	EXPECT_EQ(ret, results);
 #pragma endregion
@@ -558,31 +558,31 @@ TEST(STD140Offsets, AddMarixesArray) {
 
 	// BOOL
 	results[0] = 0;
-	results[1] = 32;
+	results[1] = 48;
 	ret = structOffsets.Add<bmat2x3, false>("Bool", 2);
 	EXPECT_EQ(ret, results);
 
 	// INT
-	results[0] = 0;
-	results[1] = 32;
+	results[0] = 96;
+	results[1] = 144;
 	ret = structOffsets.Add<imat2x3, false>("Int", 2);
 	EXPECT_EQ(ret, results);
 
 	// UINT
-	results[0] = 0;
-	results[1] = 32;
+	results[0] = 192;
+	results[1] = 240;
 	ret = structOffsets.Add<umat2x3, false>("Uint", 2);
 	EXPECT_EQ(ret, results);
 
 	// FLOAT
-	results[0] = 0;
-	results[1] = 32;
+	results[0] = 288;
+	results[1] = 336;
 	ret = structOffsets.Add<fmat2x3, false>("Float", 2);
 	EXPECT_EQ(ret, results);
 
 	// DOUBLE
-	results[0] = 0;
-	results[1] = 32;
+	results[0] = 384;
+	results[1] = 432;
 	ret = structOffsets.Add<dmat2x3, false>("Double", 2);
 	EXPECT_EQ(ret, results);
 #pragma endregion
@@ -592,31 +592,31 @@ TEST(STD140Offsets, AddMarixesArray) {
 
 	// BOOL
 	results[0] = 0;
-	results[1] = 32;
+	results[1] = 64;
 	ret = structOffsets.Add<bmat2x4, false>("Bool", 2);
 	EXPECT_EQ(ret, results);
 
 	// INT
-	results[0] = 0;
-	results[1] = 32;
+	results[0] = 128;
+	results[1] = 192;
 	ret = structOffsets.Add<imat2x4, false>("Int", 2);
 	EXPECT_EQ(ret, results);
 
 	// UINT
-	results[0] = 0;
-	results[1] = 32;
+	results[0] = 256;
+	results[1] = 320;
 	ret = structOffsets.Add<umat2x4, false>("Uint", 2);
 	EXPECT_EQ(ret, results);
 
 	// FLOAT
-	results[0] = 0;
-	results[1] = 32;
+	results[0] = 384;
+	results[1] = 448;
 	ret = structOffsets.Add<fmat2x4, false>("Float", 2);
 	EXPECT_EQ(ret, results);
 
 	// DOUBLE
-	results[0] = 0;
-	results[1] = 32;
+	results[0] = 512;
+	results[1] = 576;
 	ret = structOffsets.Add<dmat2x4, false>("Double", 2);
 	EXPECT_EQ(ret, results);
 #pragma endregion
@@ -634,12 +634,125 @@ TEST(STD140Offsets, AddStructArray) {
 
 TEST(STD140Offsets, OffsetCalculation1) {
 	STD140Offsets structOffsets;
+	STD140Offsets subStructOffsets;
+	size_t ret;
+	std::vector<size_t> retVec;
+	std::vector<size_t> resultVec(2);
+
+	ret = structOffsets.Add<float>("a");
+	EXPECT_EQ(ret, 0);
+	ret = structOffsets.Add<vec2>("b");
+	EXPECT_EQ(ret, 8);
+	ret = structOffsets.Add<vec3>("c");
+	EXPECT_EQ(ret, 16);
+
+	ret = subStructOffsets.Add<int>("d");
+	EXPECT_EQ(ret, 0);
+	ret = subStructOffsets.Add<bvec2>("e");
+	EXPECT_EQ(ret, 8);
+	ret = subStructOffsets.GetSize();
+	EXPECT_EQ(ret, 16);
+
+	ret = structOffsets.Add("f", subStructOffsets);
+	EXPECT_EQ(ret, 32);
+	ret = structOffsets.Add<float>("g");
+	EXPECT_EQ(ret, 48);
+	resultVec[0] = 64;
+	resultVec[1] = 80;
+	retVec = structOffsets.Add<float>("h", 2);
+	EXPECT_EQ(retVec, resultVec);
+	ret = structOffsets.Add<mat2x3>("i");
+	EXPECT_EQ(ret, 96);
+
+	subStructOffsets.Clear();
+	ret = subStructOffsets.Add<uvec3>("j");
+	EXPECT_EQ(ret, 0);
+	ret = subStructOffsets.Add<vec2>("k");
+	EXPECT_EQ(ret, 16);
+	resultVec[0] = 32;
+	resultVec[1] = 48;
+	retVec = subStructOffsets.Add<float>("l", 2);
+	EXPECT_EQ(retVec, resultVec);
+	ret = subStructOffsets.Add<vec2>("m");
+	EXPECT_EQ(ret, 64);
+	resultVec[0] = 80;
+	resultVec[1] = 128;
+	retVec = subStructOffsets.Add<mat3>("n", 2);
+	EXPECT_EQ(retVec, resultVec);
+	ret = subStructOffsets.GetSize();
+	EXPECT_EQ(ret, 176);
+
+	resultVec[0] = 128;
+	resultVec[1] = 304;
+	retVec = structOffsets.Add("o", subStructOffsets, 2);
+	EXPECT_EQ(retVec, resultVec);
+	ret = structOffsets.GetSize();
+	EXPECT_EQ(ret, 480);
 }
 
 TEST(STD140Offsets, OffsetCalculation2) {
 	STD140Offsets structOffsets;
+	STD140Offsets subStructOffsets;
+	size_t ret;
+	std::vector<size_t> retVec;
+	std::vector<size_t> resultVec(8);
+
+	ret = subStructOffsets.Add<bool>("has_diffuse_texture");
+	EXPECT_EQ(ret, 0);
+	ret = subStructOffsets.Add<bool>("has_specular_texture");
+	EXPECT_EQ(ret, 4);
+	ret = subStructOffsets.Add<vec3>("color");
+	EXPECT_EQ(ret, 16);
+	ret = subStructOffsets.Add<float>("shininess");
+	EXPECT_EQ(ret, 28);
+	ret = subStructOffsets.Add<unsigned int>("diffuse_toon_borders");
+	EXPECT_EQ(ret, 32);
+	ret = subStructOffsets.Add<unsigned int>("specular_toon_borders");
+	EXPECT_EQ(ret, 36);
+	ret = subStructOffsets.Add<vec2>("highlight_translate");
+	EXPECT_EQ(ret, 40);
+	ret = subStructOffsets.Add<vec2>("highlight_rotation");
+	EXPECT_EQ(ret, 48);
+	ret = subStructOffsets.Add<vec2>("highlight_scale");
+	EXPECT_EQ(ret, 56);
+	ret = subStructOffsets.Add<vec2>("highlight_split");
+	EXPECT_EQ(ret, 64);
+	ret = subStructOffsets.Add<int>("highlight_square_n");
+	EXPECT_EQ(ret, 72);
+	ret = subStructOffsets.Add<float>("highlight_square_x");
+	EXPECT_EQ(ret, 76);
+	ret = subStructOffsets.GetSize();
+	EXPECT_EQ(ret, 80);
+
+	resultVec[0] = 0;
+	resultVec[1] = 80;
+	resultVec[2] = 160;
+	resultVec[3] = 240;
+	resultVec[4] = 320;
+	resultVec[5] = 400;
+	resultVec[6] = 480;
+	resultVec[7] = 560;
+	retVec = structOffsets.Add("materialInputs", subStructOffsets, 8);
+	EXPECT_EQ(retVec, resultVec);
+	ret = structOffsets.GetSize();
+	EXPECT_EQ(ret, 640);
 }
 
 TEST(STD140Offsets, OffsetCalculation3) {
 	STD140Offsets structOffsets;
+	STD140Offsets subStructOffsets;
+	size_t ret;
+	std::vector<size_t> retVec;
+	std::vector<size_t> resultVec(2);
+
+	ret = structOffsets.Add<vec2>("windowSize");
+	EXPECT_EQ(ret, 0);
+	ret = structOffsets.Add<float>("nearPlane");
+	EXPECT_EQ(ret, 8);
+	ret = structOffsets.Add<float>("farPlane");
+	EXPECT_EQ(ret, 12);
+	ret = structOffsets.Add<float>("gamma");
+	EXPECT_EQ(ret, 16);
+	ret = structOffsets.GetSize();
+	EXPECT_EQ(ret, 32);
 }

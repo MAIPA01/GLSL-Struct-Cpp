@@ -141,7 +141,8 @@ vector<size_t> STD140Offsets::_AddArray(const string& name, size_t arraySize, si
 		size_t nameHash = move(_hasher(name));
 		_offsets[nameHash] = arrayElemOffsets[0];
 		_names[nameHash] = name;
-		_types[nameHash] = new ArrayType(typeTemplate, arraySize);
+		const ValueType* clone = typeTemplate->Clone();
+		_types[nameHash] = new ArrayType(clone, arraySize);
 	}
 
 	return arrayElemOffsets;
