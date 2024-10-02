@@ -10,7 +10,7 @@
 
 namespace glsl {
 	class STD140Offsets {
-	private:
+	protected:
 		size_t _currentOffset = 0;
 		size_t _maxAligement = 0;
 
@@ -50,8 +50,8 @@ namespace glsl {
 			}
 		}
 
-		size_t _Add(const std::string& name, size_t baseAligement, size_t baseOffset, const ValueType* type);
-		std::vector<size_t> _AddArray(const std::string& name, size_t arraySize, size_t baseAligement, size_t baseOffset, const ValueType* typeTemplate);
+		virtual size_t _Add(const std::string& name, size_t baseAligement, size_t baseOffset, const ValueType* type);
+		virtual std::vector<size_t> _AddArray(const std::string& name, size_t arraySize, size_t baseAligement, size_t baseOffset, const ValueType* typeTemplate);
 
 	public:
 		STD140Offsets() = default;

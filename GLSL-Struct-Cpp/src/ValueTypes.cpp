@@ -107,19 +107,34 @@ static string glsl::to_string(const MatType& value)
 	return value.to_string();
 }
 
-StructType::StructType(const STD140Offsets& offsets) : ValueType() {
-	_offsets = new STD140Offsets(offsets);
-}
+StructType::StructType(const offsets_map& offsets, const names_map& names, const types_map& types) : ValueType(), _offsets(offsets), _names(names), _types(types) {}
 
 StructType::~StructType() {
-	delete _offsets;
+	_offsets.clear();
+	_names.clear();
+	for (auto& type : _types) {
+		delete type.second;
+	}
+	_types.clear();
 }
 
-DefineCloneFunc(StructType, PointerDeepClone(_offsets, STD140Offsets))
+DefineCloneFunc(StructType, StandardClone(_offsets), StandardClone(_names);
+	for (const auto& type : _types) cloned->_types[type.first] = type.second->Clone()
+)
 
-const STD140Offsets* StructType::GetOffsets() const
+StructType::offsets_map StructType::GetOffsets() const
 {
 	return _offsets;
+}
+
+StructType::names_map StructType::GetNames() const
+{
+	return _names;
+}
+
+StructType::types_map StructType::GetTypes() const
+{
+	return _types;
 }
 
 string StructType::to_string() const

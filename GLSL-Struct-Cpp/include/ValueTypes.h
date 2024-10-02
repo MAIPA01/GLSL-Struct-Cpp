@@ -113,17 +113,25 @@ namespace glsl {
 
 	class StructType : public ValueType {
 	private:
-		const STD140Offsets* _offsets = nullptr;
+		using offsets_map = std::unordered_map<size_t, size_t>;
+		using names_map = std::unordered_map<size_t, std::string>;
+		using types_map = std::unordered_map<size_t, const ValueType*>;
+
+		offsets_map _offsets;
+		names_map _names;
+		types_map _types;
 
 	protected:
 		StructType() = default;
 	public:
-		StructType(const STD140Offsets& offsets);
+		StructType(const offsets_map& offsets, const names_map& names, const types_map& types);
 		virtual ~StructType();
 
 		DeclareCloneFunc(StructType);
 
-		const STD140Offsets* GetOffsets() const;
+		offsets_map GetOffsets() const;
+		names_map GetNames() const;
+		types_map GetTypes() const;
 
 		virtual std::string to_string() const override;
 	};
