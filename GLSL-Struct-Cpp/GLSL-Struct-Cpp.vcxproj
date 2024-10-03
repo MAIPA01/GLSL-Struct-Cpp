@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="include\EventHandler.h" />
     <ClInclude Include="include\framework.h" />
+    <ClInclude Include="include\libraries.h" />
     <ClInclude Include="include\macros.h" />
     <ClInclude Include="include\pch.h" />
     <ClInclude Include="include\STD140Offsets.h" />
