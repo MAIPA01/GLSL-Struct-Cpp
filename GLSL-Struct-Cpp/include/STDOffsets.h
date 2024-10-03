@@ -29,30 +29,6 @@ namespace glsl {
 
 		void _SetVariable(const std::string& name, size_t offset, const ValueType* type);
 
-		/*template<class T, class... Ts, size_t num, size_t... nums>
-		requires(sizeof...(Ts) == sizeof...(nums))
-		void _AddMultiple(const STDVariable<T, num>& var, const STDVariable<Ts, nums>&... vars) {
-			if constexpr (std::is_same_v<T, STD140Offsets>) {
-				if (num == 0) {
-					Add(var.var_name, var.struct_offsets);
-				}
-				else {
-					Add(var.var_name, var.struct_offsets, num);
-				}
-			}
-			else {
-				if (num == 0) {
-					Add<T>(var.var_name);
-				}
-				else {
-					Add<T>(var.var_name, num);
-				}
-			}
-			if constexpr (sizeof...(Ts) > 0 && sizeof...(nums) > 0) {
-				_AddMultiple(vars...);
-			}
-		}*/
-
 		virtual size_t _Add(const std::string& name, size_t baseAligement, size_t baseOffset, const ValueType* type);
 		virtual std::vector<size_t> _AddArray(const std::string& name, size_t arraySize, size_t baseAligement, size_t baseOffset, const ValueType* type);
 
@@ -68,35 +44,31 @@ namespace glsl {
 		virtual size_t _AddStruct(const std::string& name, size_t baseAligement, size_t baseOffset, const offsets_map& offsets, const names_map& names, const types_map& types);
 		virtual std::vector<size_t> _AddStructArray(const std::string& name, size_t baseAligement, size_t baseOffset, const offsets_map& offsets, const names_map& names, const types_map& types, size_t arraySize);
 
-	public:
 		STDOffsets() = default;
 		STDOffsets(STDOffsets& stdOff);
 		STDOffsets(const STDOffsets& stdOff);
 		STDOffsets(STDOffsets&& stdOff);
-		/*template<class... Args, size_t... nums>
-		requires(sizeof...(Args) == sizeof...(nums))
-		STDOffsets(const STDVariable<Args, nums>&... vars) {
-			_AddMultiple(vars...);
-		}*/
 		virtual ~STDOffsets();
 
 		STDOffsets& operator=(STDOffsets& stdOff);
 		STDOffsets& operator=(const STDOffsets& stdOff);
 		STDOffsets& operator=(STDOffsets&& stdOff);
 
+	public:
+
 		DeclareCloneFunc(STDOffsets)
 
 		bool Contains(const std::string& name) const;
 
-		size_t Get(const std::string& name) const;
-		std::vector<size_t> GetArray(const std::string& name) const;
+		virtual size_t Get(const std::string& name) const;
+		virtual std::vector<size_t> GetArray(const std::string& name) const;
 
 		const ValueType* GetType(const std::string& name) const;
 		std::vector<std::string> GetNames() const;
 
-		size_t GetBaseAligement() const;
-		size_t GetSize() const;
+		virtual size_t GetBaseAligement() const;
+		virtual size_t GetSize() const;
 
-		void Clear();
+		virtual void Clear();
 	};
 }

@@ -4,6 +4,7 @@
 #include <framework.h>
 #include <EventHandler.h>
 #include <STD140Offsets.h>
+#include <STD430Offsets.h>
 
 namespace glsl {
 	template<class T, size_t num> struct STDValue;
@@ -22,7 +23,7 @@ namespace glsl {
 
 		template<class T>
 		std::vector<unsigned char> _GetValueData(const T& value) const {
-			const char* valueDataPtr = reinterpret_cast<const unsigned char*>(&value);
+			const unsigned char* valueDataPtr = reinterpret_cast<const unsigned char*>(&value);
 			return std::vector<unsigned char>(valueDataPtr, valueDataPtr + sizeof(T));
 		}
 
@@ -114,7 +115,12 @@ namespace glsl {
 			std::vector<unsigned char> valueData = std::move(_GetValueData(value));
 
 			// SET VALUE DATA
-			_data.insert(_data.begin() + valueOffset, valueData.begin(), valueData.end());
+			if (valueOffset < _data.size()) {
+				memcpy(_data.data() + valueOffset, valueData.data(), std::min(_data.size() - valueOffset, valueData.size()));
+			}
+			if (valueOffset + valueData.size() > _data.size()) {
+				_data.insert(_data.end(), valueData.begin() + (_data.size() - valueOffset), valueData.end());
+			}
 
 			// CLEAR TEMP VALUE DATA
 			valueData.clear();
@@ -158,7 +164,12 @@ namespace glsl {
 				valueData = std::move(_GetValueData(values[i]));
 
 				// SET VALUE DATA
-				_data.insert(_data.begin() + valuesOffsets[i], valueData.begin(), valueData.end());
+				if (valuesOffsets[i] < _data.size()) {
+					memcpy(_data.data() + valuesOffsets[i], valueData.data(), std::min(_data.size() - valuesOffsets[i], valueData.size()));
+				}
+				if (valuesOffsets[i] + valueData.size() > _data.size()) {
+					_data.insert(_data.end(), valueData.begin() + (_data.size() - valuesOffsets[i]), valueData.end());
+				}
 
 				// CLEAR VALUE TEMP DATA
 				valueData.clear();
@@ -191,12 +202,19 @@ namespace glsl {
 			}
 
 			// SET VALUE DATA
-			_data.insert(_data.begin() + valueOffset, value._data.begin(), value._data.end());
+			if (valueOffset < _data.size()) {
+				memcpy(_data.data() + valueOffset, value._data.data(), std::min(_data.size() - valueOffset, value._data.size()));
+			}
+			if (valueOffset + value._data.size() > _data.size()) {
+				_data.insert(_data.end(), value._data.begin() + (_data.size() - valueOffset), value._data.end());
+			}
 
 			// CHECK DATA SIZE
 			if (_data.size() < _data.capacity()) {
 				_data.resize(_data.capacity());
 			}
+
+			return valueOffset;
 		}
 
 		std::vector<size_t> _AddStructArray(const std::string& name, const _Offsets& structOffsets, const std::vector<std::vector<unsigned char>>& values)
@@ -224,7 +242,12 @@ namespace glsl {
 				}
 
 				// SET VALUE DATA
-				_data.insert(_data.begin() + valuesOffsets[i], values[i].begin(), values[i].end());
+				if (valuesOffsets[i] < _data.size()) {
+					memcpy(_data.data() + valuesOffsets[i], values[i].data(), std::min(_data.size() - valuesOffsets[i], values[i].size()));
+				}
+				if (valuesOffsets[i] + values[i].size() > _data.size()) {
+					_data.insert(_data.end(), values[i].begin() + (_data.size() - valuesOffsets[i]), values[i].end());
+				}
 			}
 
 			// CHECK DATA SIZE

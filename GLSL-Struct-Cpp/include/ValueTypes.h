@@ -146,7 +146,7 @@ namespace glsl {
 	protected:
 		ArrayType() = default;
 	public:
-		ArrayType(const ValueType*& type, const size_t& length);
+		ArrayType(const ValueType* type, const size_t& length);
 		virtual ~ArrayType();
 
 		CloneAdvancedFunc(ArrayType, _type, _type->Clone(), StandardClone(_length));

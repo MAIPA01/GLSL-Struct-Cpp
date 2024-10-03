@@ -107,12 +107,17 @@ static string glsl::to_string(const MatType& value)
 	return value.to_string();
 }
 
-StructType::StructType(const offsets_map& offsets, const names_map& names, const types_map& types) : ValueType(), _offsets(offsets), _names(names), _types(types) {}
+StructType::StructType(const offsets_map& offsets, const names_map& names, const types_map& types) : ValueType(), _offsets(offsets), _names(names) {
+	for (auto& type : types) {
+		_types[type.first] = type.second->Clone();
+	}
+}
 
 StructType::~StructType() {
 	_offsets.clear();
 	_names.clear();
 	for (auto& type : _types) {
+		if (type.second == nullptr) continue;
 		delete type.second;
 	}
 	_types.clear();
@@ -147,7 +152,7 @@ static string glsl::to_string(const StructType& value)
 	return value.to_string();
 }
 
-ArrayType::ArrayType(const ValueType*& type, const size_t& length) : ValueType(), _length(length) {
+ArrayType::ArrayType(const ValueType* type, const size_t& length) : ValueType(), _length(length) {
 	_type = type;
 }
 

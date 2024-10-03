@@ -36,21 +36,21 @@ namespace glsl {
 #pragma endregion
 
 #pragma region NORMAL_CONSTRUCTOR
-		template<typename = extra::scalar_enable_if_t<T>>
-		STDVariable(const std::string& name) : var_name(name) {}
+		template<class T = var_type, typename = extra::scalar_enable_if_t<T>>
+		STDVariable(const std::string& name) : var_name(name), struct_offsets(nullptr) {}
 
-		template<class VT = T::value_type, size_t L = T::length(), typename = extra::vec_enable_if_t<T, VT, L>>
-		STDVariable(const std::string& name) : var_name(name) {}
+		template<class T = var_type, class VT = T::value_type, size_t L = T::length(), typename = extra::vec_enable_if_t<T, VT, L>>
+		STDVariable(const std::string& name) : var_name(name), struct_offsets(nullptr) {}
 
-		template<class MT = T::value_type, size_t C = T::row_type::length(), size_t R = T::col_type::length(), typename = extra::mat_enable_if_t<T, MT, C, R>>
-		STDVariable(const std::string& name) : var_name(name) {}
+		template<class T = var_type, class MT = T::value_type, size_t C = T::row_type::length(), size_t R = T::col_type::length(), typename = extra::mat_enable_if_t<T, MT, C, R>>
+		STDVariable(const std::string& name) : var_name(name), struct_offsets(nullptr) {}
 #pragma endregion
 
 #pragma region OFFSETS_CONSTRUCTOR
-		template<typename = extra::offsets140_enable_if_t<T>>
+		template<class T = var_type, typename = extra::offsets140_enable_if_t<T>>
 		STDVariable(const std::string& name, const STD140Offsets offsets) : var_name(name), struct_offsets(offsets) {}
 
-		template<typename = extra::offsets430_enable_if_t<T>>
+		template<class T = var_type, typename = extra::offsets430_enable_if_t<T>>
 		STDVariable(const std::string& name, const STD430Offsets offsets) : var_name(name), struct_offsets(offsets) {}
 #pragma endregion
 	};
